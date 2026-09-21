@@ -92,6 +92,10 @@ public class RegionGui {
             if (slot > 15) break;
             inv.setItem(slot++, head(e.getKey(), e.getValue(), "&6Владелец"));
         }
+        if (r.owners.size() > 5) {
+            inv.setItem(15, button(Material.PAPER, "&7... и ещё " + (r.owners.size() - 4),
+                    "&7Показаны первые 4"));
+        }
         inv.setItem(16, button(Material.RED_WOOL, "&c− Убрать",
                 "&7Клик — ввести ник в чат"));
 
@@ -122,6 +126,8 @@ public class RegionGui {
         inv.setItem(32, button(Material.REDSTONE_BLOCK, "&4Удалить регион",
                 "&7Клик — запросить удаление", "&7Потом клик ещё раз для подтверждения"));
         inv.setItem(34, button(Material.BARRIER, "&cЗакрыть"));
+        inv.setItem(35, button(Material.BOOK, "&eМои регионы",
+                "&7Клик — список твоих регионов"));
         p.openInventory(inv);
     }
 

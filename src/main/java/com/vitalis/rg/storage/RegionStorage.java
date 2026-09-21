@@ -16,6 +16,8 @@ public class RegionStorage {
     private final File file;
     /** lower-case name -> region */
     private final Map<String, Region> regions = new ConcurrentHashMap<>();
+    /** world -> regions in it. Rebuilt wholesale on every mutation (readers always see a consistent list). */
+    private final Map<String, List<Region>> byWorld = new ConcurrentHashMap<>();
 
     public RegionStorage(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -47,6 +49,16 @@ public class RegionStorage {
                 plugin.getLogger().warning("Skip broken region " + key + ": " + e.getMessage());
             }
         }
+        reindex();
+    }
+
+    private void reindex() {
+        Map<String, List<Region>> fresh = new HashMap<>();
+        for (Region r : regions.values()) {
+            fresh.computeIfAbsent(r.world, k -> new ArrayList<>()).add(r);
+        }
+        byWorld.clear();
+        byWorld.putAll(fresh);
     }
 
     private int[] toInts(String s) {
@@ -108,11 +120,14 @@ public class RegionStorage {
 
     public synchronized void put(Region r) {
         regions.put(r.name.toLowerCase(Locale.ROOT), r);
+        reindex();
     }
 
     public synchronized Region remove(String name) {
         if (name == null) return null;
-        return regions.remove(name.toLowerCase(Locale.ROOT));
+        Region removed = regions.remove(name.toLowerCase(Locale.ROOT));
+        if (removed != null) reindex();
+        return removed;
     }
 
     public synchronized int countBy(UUID owner) {
@@ -123,9 +138,15 @@ public class RegionStorage {
         return n;
     }
 
-    /** First region containing loc world+coords, or null. */
+    /**
+     * First region containing world+coords, or null.
+     * Only scans regions of the same world (index), so protection checks stay
+     * fast even with hundreds of regions across multiple worlds.
+     */
     public Region at(String world, int x, int y, int z) {
-        for (Region r : regions.values()) {
+        List<Region> same = byWorld.get(world);
+        if (same == null) return null;
+        for (Region r : same) {
             if (r.contains(world, x, y, z)) return r;
         }
         return null;

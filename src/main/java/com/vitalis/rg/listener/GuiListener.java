@@ -91,11 +91,14 @@ public class GuiListener implements Listener {
         boolean owner = r.isOwner(p.getUniqueId());
         int slot = e.getRawSlot();
         if (!owner) {
-            // members/guests: view only, can only close
-            if (slot != 34) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец меняет настройки (режим просмотра)."));
-            } else {
+            // members/guests: view only, can close or jump to their list
+            if (slot == 34) {
                 p.closeInventory();
+            } else if (slot == 35) {
+                p.closeInventory();
+                p.performCommand("rg list");
+            } else {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец меняет настройки (режим просмотра)."));
             }
             return;
         }
@@ -130,6 +133,11 @@ public class GuiListener implements Listener {
                 }
             }
             case 34 -> p.closeInventory();
+            case 35 -> {
+                // non-owners can use this too (just opens the clickable list)
+                p.closeInventory();
+                p.performCommand("rg list");
+            }
             default -> {}
         }
     }
