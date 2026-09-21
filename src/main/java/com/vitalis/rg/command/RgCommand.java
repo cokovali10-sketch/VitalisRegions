@@ -4,6 +4,7 @@ import com.vitalis.rg.Regions;
 import com.vitalis.rg.model.Region;
 import com.vitalis.rg.select.SelectionManager;
 import com.vitalis.rg.util.Msg;
+import com.vitalis.rg.util.Perms;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -21,7 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.*;
 
 /**
- * /rg help inline: pos1, pos2, wand, create, delete, list, info.
+ * /area help inline: pos1, pos2, wand, create, delete, list, info.
  * Members/owners/flags live in the info GUI (+/- buttons + chat input).
  */
 public class RgCommand implements CommandExecutor, TabCompleter {
@@ -43,7 +44,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("Only players.");
             return true;
         }
-        if (!p.hasPermission("rg.use")) {
+        if (!Perms.has(p, "use")) {
             send(p, "&cНет доступа.");
             return true;
         }
@@ -84,7 +85,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             case "list" -> handleList(p);
             case "info" -> {
                 if (args.length < 2) {
-                    send(p, "&eИспользование: &f/rg info <название>");
+                    send(p, "&eИспользование: &f/area info <название>");
                     return true;
                 }
                 Region r = plugin.storage().get(args[1]);
@@ -111,13 +112,13 @@ public class RgCommand implements CommandExecutor, TabCompleter {
 
     private void help(Player p) {
         send(p, "<gradient:#5DFF6E:#00E5FF>Регионы</gradient> <gray>— команды (клик — вставить в чат):");
-        cmdLine(p, "/rg pos1", "точка 1 (где стоишь)");
-        cmdLine(p, "/rg pos2", "точка 2 (где стоишь)");
-        cmdLine(p, "/rg wand", "жезл: ЛКМ — точка 1, ПКМ — точка 2");
-        cmdLine(p, "/rg create <имя>", "создать (+ vert = от bedrock до неба)");
-        cmdLine(p, "/rg delete <имя>", "удалить (повторить 2 раза)");
-        cmdLine(p, "/rg list", "твои регионы (клик — открыть)");
-        cmdLine(p, "/rg info <имя>", "окно: владельцы/игроки +/-, флаги");
+        cmdLine(p, "/area pos1", "точка 1 (где стоишь)");
+        cmdLine(p, "/area pos2", "точка 2 (где стоишь)");
+        cmdLine(p, "/area wand", "жезл: ЛКМ — точка 1, ПКМ — точка 2");
+        cmdLine(p, "/area create <имя>", "создать (+ vert = от bedrock до неба)");
+        cmdLine(p, "/area delete <имя>", "удалить (повторить 2 раза)");
+        cmdLine(p, "/area list", "твои регионы (клик — открыть)");
+        cmdLine(p, "/area info <имя>", "окно: владельцы/игроки +/-, флаги");
     }
 
     /** Clickable chat line: click inserts the command. */
@@ -144,18 +145,18 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Дальше: ")
                     .append(Component.text("[создать]")
                             .color(NamedTextColor.GREEN)
-                            .clickEvent(ClickEvent.suggestCommand("/rg create "))
+                            .clickEvent(ClickEvent.suggestCommand("/area create "))
                             .hoverEvent(HoverEvent.showText(Component.text("Введи имя. Добавь vert — растянет от bedrock до неба")))));
         }
     }
 
     private void handleCreate(Player p, String[] args) {
-        if (!p.hasPermission("rg.create")) {
+        if (!Perms.has(p, "create")) {
             send(p, "&cНет доступа.");
             return;
         }
         if (args.length < 2) {
-            send(p, "&eИспользование: &f/rg create <имя> [vert]");
+            send(p, "&eИспользование: &f/area create <имя> [vert]");
             send(p, "&7vert — растянуть от bedrock до неба.");
             return;
         }
@@ -170,7 +171,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         }
         SelectionManager.Selection s = plugin.selections().get(p.getUniqueId());
         if (!s.complete()) {
-            send(p, "&cСначала выдели точки: &e/rg pos1 &cи &e/rg pos2");
+            send(p, "&cСначала выдели точки: &e/area pos1 &cи &e/area pos2");
             return;
         }
         String world = s.pos1.getWorld().getName();
@@ -192,7 +193,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 p.getUniqueId(), p.getName(),
                 plugin.cfg().defaultPvp, plugin.cfg().defaultExplosions);
 
-        if (!p.hasPermission("rg.unlimited")) {
+        if (!Perms.has(p, "unlimited")) {
             int mine = plugin.storage().countBy(p.getUniqueId());
             if (mine >= plugin.cfg().maxPerPlayer) {
                 send(p, "&cЛимит регионов: &e" + mine + "/" + plugin.cfg().maxPerPlayer);
@@ -222,7 +223,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Настройка игроков и флагов: ")
                 .append(Component.text("[открыть " + name + "]")
                         .color(NamedTextColor.GREEN)
-                        .clickEvent(ClickEvent.runCommand("/rg info " + name))
+                        .clickEvent(ClickEvent.runCommand("/area info " + name))
                         .hoverEvent(HoverEvent.showText(Component.text("Клик — открыть окно региона")))));
         if (plugin.cfg().sounds) p.playSound(p.getLocation(),
                 org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1f);
@@ -230,7 +231,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
 
     private void handleDelete(Player p, String[] args) {
         if (args.length < 2) {
-            send(p, "&eИспользование: &f/rg delete <имя>");
+            send(p, "&eИспользование: &f/area delete <имя>");
             return;
         }
         Region r = plugin.storage().get(args[1]);
@@ -239,7 +240,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             return;
         }
         boolean owner = r.isOwner(p.getUniqueId());
-        if (!owner && !p.hasPermission("rg.admin")) {
+        if (!owner && !Perms.has(p, "admin")) {
             send(p, "&cТолько владелец или админ.");
             return;
         }
@@ -247,7 +248,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         Long until = deleteConfirm.get(p.getUniqueId());
         if (until == null || until < now) {
             deleteConfirm.put(p.getUniqueId(), now + 15000L);
-            send(p, "&cПовтори &f/rg delete " + r.name + " &cдля подтверждения (15 сек).");
+            send(p, "&cПовтори &f/area delete " + r.name + " &cдля подтверждения (15 сек).");
             return;
         }
         deleteConfirm.remove(p.getUniqueId());
@@ -262,7 +263,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             if (r.isOwner(p.getUniqueId()) || r.isMember(p.getUniqueId())) mine.add(r);
         }
         if (mine.isEmpty()) {
-            send(p, "&7У тебя нет регионов. Выдели точки и: &e/rg create <имя>");
+            send(p, "&7У тебя нет регионов. Выдели точки и: &e/area create <имя>");
             return;
         }
         send(p, "<gradient:#5DFF6E:#00E5FF>Твои регионы</gradient> <gray>(" + mine.size() + ", клик — открыть):");
@@ -271,7 +272,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                             + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ() + " ")
                     .append(Component.text("[открыть]")
                             .color(NamedTextColor.GREEN)
-                            .clickEvent(ClickEvent.runCommand("/rg info " + r.name))
+                            .clickEvent(ClickEvent.runCommand("/area info " + r.name))
                             .hoverEvent(HoverEvent.showText(Component.text("Клик — окно региона")))));
         }
     }

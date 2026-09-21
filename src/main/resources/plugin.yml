@@ -7,23 +7,23 @@ description: Light regions for Purpur/Paper 1.21.11 - select, create, GUI member
 depend: []
 softdepend: [Vault, Essentials, WorldGuard]
 commands:
-  rg:
+  area:
     description: Regions - select points, create, manage. All settings in GUI.
-    usage: /rg [pos1|pos2|wand|create|delete|list|info]
-    aliases: [region, regions]
+    usage: /area [pos1|pos2|wand|create|delete|list|info]
+    aliases: [region, regions, rg]
 permissions:
-  rg.use:
-    description: Use /rg
+  area.use:
+    description: Use /area
     default: true
-  rg.create:
+  area.create:
     description: Create regions
     default: true
-  rg.unlimited:
-    description: Bypass region count and size limits
+  area.unlimited:
+    description: Bypass region count limits
     default: op
-  rg.bypass:
+  area.bypass:
     description: Ignore region protection
     default: op
-  rg.admin:
+  area.admin:
     description: Delete other players regions
     default: op

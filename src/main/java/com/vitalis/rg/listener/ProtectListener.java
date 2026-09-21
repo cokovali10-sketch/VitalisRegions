@@ -29,7 +29,7 @@ public class ProtectListener implements Listener {
     }
 
     private boolean bypass(Player p) {
-        return p.hasPermission("rg.bypass") || p.isOp();
+        return com.vitalis.rg.util.Perms.has(p, "bypass") || p.isOp();
     }
 
     private void deny(Player p, Region r) {

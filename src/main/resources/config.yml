@@ -13,7 +13,7 @@ limits:
   blocked-worlds: []
 
 economy:
-  # price for /rg create (0 = free). Charged via Vault if present.
+  # price for /area create (0 = free). Charged via Vault if present.
   claim-price: 0.0
   symbol: "$"
 

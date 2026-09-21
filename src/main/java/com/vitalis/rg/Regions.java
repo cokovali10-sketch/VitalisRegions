@@ -12,7 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * VitalisRegions v1.0.0 - Paper/Purpur 1.21.11.
- * /rg pos1/pos2/wand/create/delete/list/info + GUI members/owners + protection.
+ * /area pos1/pos2/wand/create/delete/list/info + GUI members/owners + protection.
  */
 public class Regions extends JavaPlugin {
     private final RgConfig cfg = new RgConfig();

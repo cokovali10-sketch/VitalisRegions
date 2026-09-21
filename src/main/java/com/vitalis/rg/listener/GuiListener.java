@@ -45,7 +45,7 @@ public class GuiListener implements Listener {
         Player p = e.getPlayer();
         ItemStack hand = p.getInventory().getItemInMainHand();
         if (hand.getType() != plugin.cfg().wand) return;
-        if (!p.hasPermission("rg.use")) return;
+        if (!com.vitalis.rg.util.Perms.has(p, "use")) return;
         Block b = e.getClickedBlock();
         if (b == null) return;
         SelectionManager.Selection s = plugin.selections().get(p.getUniqueId());
@@ -61,7 +61,7 @@ public class GuiListener implements Listener {
             return;
         }
         if (s.complete()) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Готово → &e/rg create <имя>"));
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Готово → &e/area create <имя>"));
         }
     }
 
@@ -96,7 +96,7 @@ public class GuiListener implements Listener {
                 p.closeInventory();
             } else if (slot == 35) {
                 p.closeInventory();
-                p.performCommand("rg list");
+                p.performCommand("area list");
             } else {
                 p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец меняет настройки (режим просмотра)."));
             }
@@ -136,7 +136,7 @@ public class GuiListener implements Listener {
             case 35 -> {
                 // non-owners can use this too (just opens the clickable list)
                 p.closeInventory();
-                p.performCommand("rg list");
+                p.performCommand("area list");
             }
             default -> {}
         }
