@@ -1,6 +1,8 @@
-# VitalisRegions v1.0.0 - Purpur/Paper 1.21.11
+# VitalisRegions - Purpur/Paper 1.21.11
+# Цвета: legacy '&' ИЛИ MiniMessage <gradient:#5DFF6E:#00E5FF>текст</gradient>,
+# <rainbow>, <red>, <gray> и т.д. Внутри MiniMessage коды '&' не работают!
 general:
-  prefix: "&8[&aRG&8] "
+  prefix: '<gradient:#5DFF6E:#00E5FF>[RG]</gradient> <gray>'
   # golden axe wand (does NOT conflict with WorldEdit wooden axe)
   wand: GOLDEN_AXE
 
@@ -21,5 +23,5 @@ protection:
   default-explosions: false
 
 gui:
-  title-info: "&8Регион &a{name}"
+  title-info: '<gradient:#5DFF6E:#00E5FF>Регион {name}</gradient>'
   sounds: true

@@ -66,12 +66,14 @@ public class ProtectListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBucketEmpty(PlayerBucketEmptyEvent e) {
+        if (e.getBlockClicked() == null) return;
         checkBucket(e.getPlayer(), e.getBlockClicked().getWorld().getName(),
                 e.getBlockClicked().getX(), e.getBlockClicked().getY(), e.getBlockClicked().getZ(), e);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBucketFill(PlayerBucketFillEvent e) {
+        if (e.getBlockClicked() == null) return;
         checkBucket(e.getPlayer(), e.getBlockClicked().getWorld().getName(),
                 e.getBlockClicked().getX(), e.getBlockClicked().getY(), e.getBlockClicked().getZ(), e);
     }
@@ -92,6 +94,9 @@ public class ProtectListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent e) {
         if (e.getHand() != EquipmentSlot.HAND) return;
+        // RIGHT click only: left click is covered by BlockBreakEvent (avoids double deny),
+        // PHYSICAL (pressure plates) stays usable for everyone
+        if (e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
         Player p = e.getPlayer();
         if (bypass(p)) return;
         Block b = e.getClickedBlock();

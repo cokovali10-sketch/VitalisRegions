@@ -89,12 +89,16 @@ public class GuiListener implements Listener {
             return;
         }
         boolean owner = r.isOwner(p.getUniqueId());
+        int slot = e.getRawSlot();
         if (!owner) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец."));
-            p.closeInventory();
+            // members/guests: view only, can only close
+            if (slot != 34) {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец меняет настройки (режим просмотра)."));
+            } else {
+                p.closeInventory();
+            }
             return;
         }
-        int slot = e.getRawSlot();
         switch (slot) {
             case 10 -> askInput(p, r, RegionGui.InputKind.ADD_OWNER, "&eВведи ник нового владельца в чат:");
             case 16 -> askInput(p, r, RegionGui.InputKind.DEL_OWNER, "&eВведи ник владельца для удаления:");

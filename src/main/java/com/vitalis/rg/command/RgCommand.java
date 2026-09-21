@@ -66,6 +66,10 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 hintComplete(p, s);
             }
             case "wand" -> {
+                if (hasWand(p)) {
+                    send(p, "&eЖезл уже в инвентаре: &fЛКМ — точка 1, ПКМ — точка 2");
+                    return true;
+                }
                 ItemStack wand = new ItemStack(plugin.cfg().wand);
                 ItemMeta m = wand.getItemMeta();
                 m.displayName(Msg.color("&aЖезл региона"));
@@ -95,8 +99,18 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /** Our wand = same material + same name (avoids duplicates). */
+    private boolean hasWand(Player p) {
+        for (ItemStack it : p.getInventory().getContents()) {
+            if (it == null || it.getType() != plugin.cfg().wand) continue;
+            if (!it.hasItemMeta() || !it.getItemMeta().hasDisplayName()) continue;
+            if (Msg.plain(it.getItemMeta().displayName()).equals("Жезл региона")) return true;
+        }
+        return false;
+    }
+
     private void help(Player p) {
-        send(p, "&aРегионы — команды (клик — вставить в чат):");
+        send(p, "<gradient:#5DFF6E:#00E5FF>Регионы</gradient> <gray>— команды (клик — вставить в чат):");
         cmdLine(p, "/rg pos1", "точка 1 (где стоишь)");
         cmdLine(p, "/rg pos2", "точка 2 (где стоишь)");
         cmdLine(p, "/rg wand", "жезл: ЛКМ — точка 1, ПКМ — точка 2");
@@ -202,9 +216,9 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         plugin.storage().put(r);
         plugin.storage().saveAsync();
         plugin.selections().clear(p.getUniqueId());
-        send(p, "&aРегион &f" + name + " &aсоздан: &f"
+        send(p, "<gradient:#5DFF6E:#00E5FF>Регион " + name + " создан!</gradient> <gray>"
                 + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
-                + (vert ? " &7(на всю высоту)" : "") + " &a— бесплатно");
+                + (vert ? " (на всю высоту)" : "") + " — бесплатно");
         p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Настройка игроков и флагов: ")
                 .append(Component.text("[открыть " + name + "]")
                         .color(NamedTextColor.GREEN)
@@ -251,7 +265,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             send(p, "&7У тебя нет регионов. Выдели точки и: &e/rg create <имя>");
             return;
         }
-        send(p, "&aТвои регионы (&e" + mine.size() + "&a, клик — открыть):");
+        send(p, "<gradient:#5DFF6E:#00E5FF>Твои регионы</gradient> <gray>(" + mine.size() + ", клик — открыть):");
         for (Region r : mine) {
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + r.name + " &7" + r.world + " "
                             + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ() + " ")
