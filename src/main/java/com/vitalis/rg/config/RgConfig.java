@@ -14,7 +14,6 @@ public class RgConfig {
     public Material wand;
 
     public int maxPerPlayer;
-    public int maxSide;
     public Set<String> blockedWorlds = new HashSet<>();
 
     public double claimPrice;
@@ -38,8 +37,7 @@ public class RgConfig {
             wand = Material.GOLDEN_AXE;
         }
 
-        maxPerPlayer = c.getInt("limits.max-per-player", 5);
-        maxSide = c.getInt("limits.max-side", 200);
+        maxPerPlayer = c.getInt("limits.max-per-player", 100);
         blockedWorlds.clear();
         for (String w : c.getStringList("limits.blocked-worlds")) {
             blockedWorlds.add(w.toLowerCase(Locale.ROOT));

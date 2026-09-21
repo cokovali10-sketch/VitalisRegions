@@ -5,10 +5,8 @@ general:
   wand: GOLDEN_AXE
 
 limits:
-  # max regions per player (perm rg.unlimited bypasses)
-  max-per-player: 5
-  # max side length in blocks on any axis (perm rg.unlimited bypasses)
-  max-side: 200
+  # max regions per player (perm rg.unlimited = endless)
+  max-per-player: 100
   # worlds where creating is denied (empty = all allowed)
   blocked-worlds: []
 
