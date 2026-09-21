@@ -9,7 +9,7 @@ softdepend: [Vault, Essentials, WorldGuard]
 commands:
   area:
     description: Regions - select points, create, manage. All settings in GUI.
-    usage: /area [pos1|pos2|wand|create|delete|list|info]
+    usage: /area [pos1|pos2|wand|create|delete|list|info|reload]
     aliases: [region, regions, rg]
 permissions:
   area.use:

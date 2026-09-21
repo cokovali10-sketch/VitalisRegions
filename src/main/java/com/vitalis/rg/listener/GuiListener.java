@@ -164,6 +164,28 @@ public class GuiListener implements Listener {
         plugin.gui().cancelInput(e.getPlayer());
     }
 
+    /** Nicknames change — refresh stored display names on join (keys stay UUID). */
+    @EventHandler
+    public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        boolean changed = false;
+        for (com.vitalis.rg.model.Region r : plugin.storage().all()) {
+            if (r.owner.equals(p.getUniqueId()) && !p.getName().equals(r.ownerName)) {
+                r.ownerName = p.getName();
+                changed = true;
+            }
+            if (r.owners.containsKey(p.getUniqueId()) && !p.getName().equals(r.owners.get(p.getUniqueId()))) {
+                r.owners.put(p.getUniqueId(), p.getName());
+                changed = true;
+            }
+            if (r.members.containsKey(p.getUniqueId()) && !p.getName().equals(r.members.get(p.getUniqueId()))) {
+                r.members.put(p.getUniqueId(), p.getName());
+                changed = true;
+            }
+        }
+        if (changed) plugin.storage().saveAsync();
+    }
+
     // ---------------- chat nick input ----------------
 
     @EventHandler

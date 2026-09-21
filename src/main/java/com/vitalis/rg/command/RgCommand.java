@@ -95,6 +95,14 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 }
                 plugin.gui().openInfo(p, r);
             }
+            case "reload" -> {
+                if (!Perms.has(p, "admin")) {
+                    send(p, "&cНет доступа.");
+                    return true;
+                }
+                plugin.cfg().load(plugin);
+                send(p, "&aКонфиг перезагружен (регионы не тронуты).");
+            }
             default -> help(p);
         }
         return true;
@@ -119,6 +127,9 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         cmdLine(p, "/area delete <имя>", "удалить (повторить 2 раза)");
         cmdLine(p, "/area list", "твои регионы (клик — открыть)");
         cmdLine(p, "/area info <имя>", "окно: владельцы/игроки +/-, флаги");
+        if (Perms.has(p, "admin")) {
+            cmdLine(p, "/area reload", "перезагрузить конфиг");
+        }
     }
 
     /** Clickable chat line: click inserts the command. */
@@ -280,7 +291,9 @@ public class RgCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(args[0], List.of("pos1", "pos2", "wand", "create", "delete", "list", "info"));
+            List<String> base = new ArrayList<>(List.of("pos1", "pos2", "wand", "create", "delete", "list", "info"));
+            if (sender instanceof Player p && Perms.has(p, "admin")) base.add("reload");
+            return filter(args[0], base);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("info"))) {
             List<String> names = new ArrayList<>();

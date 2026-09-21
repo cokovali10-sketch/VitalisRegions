@@ -130,6 +130,40 @@ public class ProtectListener implements Listener {
                 || n.contains("CANDLE") || n.contains("FLOWER_POT");
     }
 
+    // ---------------- trespass ----------------
+    // Frames/armor stands on чужой walls + pearl/chorus jumps inside.
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onHangingPlace(org.bukkit.event.hanging.HangingPlaceEvent e) {
+        Player p = e.getPlayer();
+        if (p == null || bypass(p)) return;
+        Block b = e.getBlock();
+        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
+        if (r == null) return;
+        if (!r.canBuild(p.getUniqueId())) {
+            e.setCancelled(true);
+            deny(p, r);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onTeleportIn(org.bukkit.event.player.PlayerTeleportEvent e) {
+        org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause = e.getCause();
+        if (cause != org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.ENDER_PEARL
+                && cause != org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT) return;
+        Player p = e.getPlayer();
+        if (bypass(p)) return;
+        org.bukkit.Location to = e.getTo();
+        if (to == null || to.getWorld() == null) return;
+        Region r = plugin.storage().at(to.getWorld().getName(),
+                to.getBlockX(), to.getBlockY(), to.getBlockZ());
+        if (r == null) return;
+        if (!r.canBuild(p.getUniqueId())) {
+            e.setCancelled(true);
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cНельзя попасть в регион &f" + r.name + " &cтаким способом."));
+        }
+    }
+
     // ---------------- pvp ----------------
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -153,13 +187,14 @@ public class ProtectListener implements Listener {
     }
 
     // ---------------- explosions ----------------
+    // Full cancel: no crater AND no entity damage (otherwise creepers still hurt through the flag)
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent e) {
         Region r = plugin.storage().at(e.getLocation().getWorld().getName(),
                 e.getLocation().getBlockX(), e.getLocation().getBlockY(), e.getLocation().getBlockZ());
         if (r != null && !r.explosions) {
-            e.blockList().clear();
+            e.setCancelled(true);
         }
     }
 
@@ -168,7 +203,94 @@ public class ProtectListener implements Listener {
         Block b = e.getBlock();
         Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
         if (r != null && !r.explosions) {
-            e.blockList().clear();
+            e.setCancelled(true);
+        }
+    }
+
+    // ---------------- pistons ----------------
+    // Blocks must not cross region borders (classic piston grief in/out).
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPistonExtend(org.bukkit.event.block.BlockPistonExtendEvent e) {
+        Block piston = e.getBlock();
+        String home = regionNameAt(piston);
+        for (Block moved : e.getBlocks()) {
+            Block dest = moved.getRelative(e.getDirection());
+            if (!sameRegion(home, regionNameAt(moved)) || !sameRegion(home, regionNameAt(dest))) {
+                e.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPistonRetract(org.bukkit.event.block.BlockPistonRetractEvent e) {
+        if (!e.isSticky()) return;
+        Block piston = e.getBlock();
+        String home = regionNameAt(piston);
+        for (Block moved : e.getBlocks()) {
+            if (!sameRegion(home, regionNameAt(moved))) {
+                e.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    private String regionNameAt(Block b) {
+        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
+        return r == null ? null : r.name.toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private boolean sameRegion(String a, String b) {
+        return a == null ? b == null : a.equals(b);
+    }
+
+    // ---------------- fire / lava / nature ----------------
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onIgnite(org.bukkit.event.block.BlockIgniteEvent e) {
+        Block b = e.getBlock();
+        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
+        if (r == null) return;
+        if (e.getCause() == org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL
+                || e.getCause() == org.bukkit.event.block.BlockIgniteEvent.IgniteCause.FIREBALL) {
+            Player p = e.getPlayer();
+            if (p != null && !bypass(p) && !r.canBuild(p.getUniqueId())) {
+                e.setCancelled(true);
+                deny(p, r);
+                return;
+            }
+        }
+        // lightning / lava / spread fire never starts inside a region
+        if (e.getPlayer() == null) e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onFireSpread(org.bukkit.event.block.BlockSpreadEvent e) {
+        Block target = e.getNewState().getBlock();
+        Block source = e.getSource();
+        String t = regionNameAt(target);
+        if (t != null && !sameRegion(t, regionNameAt(source))) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onLiquidFlow(org.bukkit.event.block.BlockFromToEvent e) {
+        Block target = e.getToBlock();
+        String t = regionNameAt(target);
+        // water/lava may flow inside one region or in the wild, but never INTO a чужой region
+        if (t != null && !sameRegion(t, regionNameAt(e.getBlock()))) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEndermanGrief(org.bukkit.event.entity.EntityChangeBlockEvent e) {
+        if (e.getEntityType() != org.bukkit.entity.EntityType.ENDERMAN) return;
+        Block b = e.getBlock();
+        if (plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ()) != null) {
+            e.setCancelled(true);
         }
     }
 
