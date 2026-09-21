@@ -1,0 +1,16 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        mavenCentral()
+        maven { url = "https://repo.papermc.io/repository/maven-public/" }
+        maven { url = "https://jitpack.io" }
+    }
+}
+
+rootProject.name = "vitalisregions"
