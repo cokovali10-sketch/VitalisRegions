@@ -148,7 +148,13 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 if (r == null) return true;
                 openAddDialog(p, r, sub.equals("ownadd"));
             }
-            case "gwand" -> giveWand(p);
+            case "gwand" -> {
+                if (!Perms.has(p, "use")) {
+                    send(p, "&cНет доступа.");
+                    return true;
+                }
+                giveWand(p);
+            }
             case "reload" -> {
                 if (!Perms.has(p, "admin")) {
                     send(p, "&cНет доступа.");
