@@ -38,6 +38,11 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("Only players.");
             return true;
         }
+        return handle(p, args);
+    }
+
+    /** Shared logic for Bukkit executor and Paper Brigadier wrapper. */
+    public boolean handle(Player p, String[] args) {
         if (!Perms.has(p, "use")) {
             send(p, "&cНет доступа.");
             return true;

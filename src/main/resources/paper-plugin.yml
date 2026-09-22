@@ -1,0 +1,24 @@
+name: VitalisRegions
+version: ${version}
+main: com.vitalis.rg.Regions
+api-version: "1.21"
+author: Vitalis
+description: "Light regions for Purpur and Paper 1.21.11."
+depend: []
+softdepend: [Vault, Essentials, WorldGuard]
+permissions:
+  area.use:
+    description: "Use /area"
+    default: true
+  area.create:
+    description: "Create regions"
+    default: true
+  area.unlimited:
+    description: "Bypass region count limits"
+    default: op
+  area.bypass:
+    description: "Ignore region protection"
+    default: op
+  area.admin:
+    description: "Delete other players regions"
+    default: op

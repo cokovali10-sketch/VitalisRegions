@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-version = "3.4.1"
+version = "3.4.3"
 group = "com.vitalis.rg"
 
 base {
@@ -30,7 +30,7 @@ tasks.withType(Test).configureEach {
 processResources {
     inputs.property "version", project.version
     filteringCharset "UTF-8"
-    filesMatching("plugin.yml") {
+    filesMatching(["plugin.yml", "paper-plugin.yml"]) {
         expand "version": project.version
     }
 }
