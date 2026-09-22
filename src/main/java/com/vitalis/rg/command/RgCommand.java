@@ -230,13 +230,15 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         try {
             List<io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry> opts = new ArrayList<>();
             opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
-                    .create("__type__", net.kyori.adventure.text.Component.text("Ввести ник полностью"), true));
+                    .create("__refine__", net.kyori.adventure.text.Component.text("Уточнить буквы («" + prefix + "»)"), true));
+            opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
+                    .create("__type__", net.kyori.adventure.text.Component.text("Ввести ник полностью"), false));
             for (com.vitalis.rg.menu.DialogMenu.DialogMenuEntry e : matched) {
                 opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
                         .create(e.id(), net.kyori.adventure.text.Component.text(e.nick()), false));
             }
             com.vitalis.rg.menu.DialogMenu.select(plugin, p,
-                    Msg.color(plugin.menus().grad("Начинаются на «" + prefix + "» · " + r.name)), opts,
+                    Msg.color(plugin.menus().grad("«" + prefix + "» · найдено " + matched.size() + " · " + r.name)), opts,
                     id -> {
                         if (id.isEmpty()) {
                             send(p, "&7Отменено.");
@@ -246,10 +248,32 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                             openTypeDialog(p, r, owner);
                             return;
                         }
+                        if (id.equals("__refine__")) {
+                            openRefineDialog(p, r, owner, prefix);
+                            return;
+                        }
                         applyAddUuid(p, r.name, id, owner);
                     });
         } catch (Throwable t) {
             openTypeDialog(p, r, owner);
+        }
+    }
+
+    /** Refine filter: text window pre-filled with current letters (add more or erase). */
+    private void openRefineDialog(Player p, Region r, boolean owner, String prefix) {
+        try {
+            com.vitalis.rg.menu.DialogMenu.textInput(plugin, p,
+                    Msg.color(plugin.menus().grad((owner ? "Добавить владельца" : "Добавить игрока") + " · " + r.name)),
+                    "Буквы ника (можно стереть):", prefix,
+                    text -> {
+                        if (text.isEmpty()) {
+                            send(p, "&7Отменено.");
+                            return;
+                        }
+                        openMatchDialog(p, r, owner, text);
+                    });
+        } catch (Throwable t) {
+            openMatchDialog(p, r, owner, prefix);
         }
     }
 

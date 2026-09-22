@@ -36,6 +36,12 @@ public final class DialogMenu {
     /** Text input window. onSubmit runs on main thread with trimmed text ("" when empty). */
     public static void textInput(Regions plugin, Player p, Component title,
                                  String label, Consumer<String> onSubmit) {
+        textInput(plugin, p, title, label, "", onSubmit);
+    }
+
+    /** Same, with pre-filled text (for refining the filter letter by letter). */
+    public static void textInput(Regions plugin, Player p, Component title,
+                                 String label, String initial, Consumer<String> onSubmit) {
         UUID uuid = p.getUniqueId();
         DialogAction ok = DialogAction.customClick((response, audience) -> {
             if (!(audience instanceof Player pl) || !pl.getUniqueId().equals(uuid)) return;
@@ -52,6 +58,7 @@ public final class DialogMenu {
                 .base(DialogBase.builder(title)
                         .inputs(List.of(DialogInput.text("nick", Component.text(label))
                                 .maxLength(16)
+                                .initial(initial == null ? "" : initial)
                                 .build()))
                         .canCloseWithEscape(true)
                         .build())
