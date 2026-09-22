@@ -67,6 +67,24 @@ public class GuiListener implements Listener {
         plugin.menus().cancelInput(e.getPlayer());
     }
 
+    /** Heaven touch: actionbar title when walking into your region (block-cross only, cheap). */
+    @EventHandler
+    public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
+        if (!plugin.cfg().enterTitle) return;
+        if (e.getFrom().getBlockX() == e.getTo().getBlockX()
+                && e.getFrom().getBlockY() == e.getTo().getBlockY()
+                && e.getFrom().getBlockZ() == e.getTo().getBlockZ()) return;
+        if (!e.getFrom().getWorld().equals(e.getTo().getWorld())) return;
+        Player p = e.getPlayer();
+        Region from = plugin.storage().at(e.getFrom().getWorld().getName(),
+                e.getFrom().getBlockX(), e.getFrom().getBlockY(), e.getFrom().getBlockZ());
+        Region to = plugin.storage().at(e.getTo().getWorld().getName(),
+                e.getTo().getBlockX(), e.getTo().getBlockY(), e.getTo().getBlockZ());
+        if (to == null || (from != null && from.name.equalsIgnoreCase(to.name))) return;
+        if (!to.isOwner(p.getUniqueId()) && !to.isMember(p.getUniqueId())) return;
+        p.sendActionBar(Msg.color(plugin.menus().grad("◆ " + to.name + " ◆")));
+    }
+
     /** Nicknames change — refresh stored display names on join (keys stay UUID). */
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
@@ -108,7 +126,24 @@ public class GuiListener implements Listener {
             return;
         }
         if (in.kind() == ChatMenu.InputKind.CREATE_NAME) {
-            plugin.commands().createFromChat(p, text);
+            plugin.commands().createFromChat(p, text, in.vert());
+            return;
+        }
+        if (in.kind() == ChatMenu.InputKind.RENAME) {
+            Region r = plugin.storage().get(in.region());
+            if (r == null || !r.isOwner(p.getUniqueId())) {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец."));
+                return;
+            }
+            String old = r.name;
+            if (plugin.storage().rename(old, text)) {
+                plugin.storage().saveAsync();
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&aРегион &f" + old + " &aтеперь &f" + text));
+                Region updated = plugin.storage().get(text);
+                if (updated != null) plugin.menus().regionMenu(p, updated);
+            } else {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cПлохо: имя занято или не подходит (латиница 3-16)."));
+            }
             return;
         }
         Region r = plugin.storage().get(in.region());

@@ -88,7 +88,8 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 }
                 plugin.menus().regionMenu(p, r);
             }
-            case "mk" -> askCreateName(p);
+            case "mk" -> askCreateName(p, false);
+            case "mkvert" -> askCreateName(p, true);
             case "vert" -> {
                 if (args.length < 2) return true;
                 expandVert(p, args[1]);
@@ -104,6 +105,29 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             case "del" -> {
                 if (args.length < 2) return true;
                 deleteMenu(p, args[1]);
+            }
+            case "delyes" -> {
+                if (args.length < 2) return true;
+                Region r = plugin.storage().get(args[1]);
+                if (r == null || !r.isOwner(p.getUniqueId())) {
+                    send(p, "&cТолько владелец.");
+                    return true;
+                }
+                plugin.storage().remove(r.name);
+                plugin.storage().saveAsync();
+                send(p, "&aРегион &f" + r.name + " &aудалён.");
+                plugin.menus().mainMenu(p);
+            }
+            case "ren" -> {
+                if (args.length < 2) return true;
+                Region r = plugin.storage().get(args[1]);
+                if (r == null || !r.isOwner(p.getUniqueId())) {
+                    send(p, "&cТолько владелец.");
+                    return true;
+                }
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи новое название в чат &7(латиница 3-16, пустое = отмена, 30 сек):"));
+                plugin.menus().markInput(p, r.name, ChatMenu.InputKind.RENAME);
+                scheduleInputTimeout(p);
             }
             case "owndel" -> {
                 if (args.length < 2) return true;
@@ -222,7 +246,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
 
     // ---------------- hidden: create ----------------
 
-    private void askCreateName(Player p) {
+    private void askCreateName(Player p, boolean vert) {
         SelectionManager.Selection s = plugin.selections().get(p.getUniqueId());
         if (!s.complete()) {
             send(p, "&cСначала выдели точки кнопками ниже.");
@@ -234,13 +258,19 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             return;
         }
         p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи название региона в чат "
+                + (vert ? "&6(на всю высоту) " : "")
                 + "&7(латиница 3-16, пустое = отмена, 30 сек):"));
-        plugin.menus().markInput(p, "", ChatMenu.InputKind.CREATE_NAME);
+        plugin.menus().markInput(p, "", ChatMenu.InputKind.CREATE_NAME, vert);
         scheduleInputTimeout(p);
     }
 
     /** Called from chat input with the typed name. */
     public void createFromChat(Player p, String name) {
+        createFromChat(p, name, false);
+    }
+
+    /** Called from chat input with the typed name. */
+    public void createFromChat(Player p, String name, boolean vert) {
         if (!name.matches("[a-zA-Z0-9_-]{3,16}")) {
             send(p, "&cИмя: 3-16 символов, латиница/цифры/_/-");
             return;
@@ -259,9 +289,14 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             send(p, "&cВ этом мире создавать нельзя.");
             return;
         }
+        int y1 = s.pos1.getBlockY(), y2 = s.pos2.getBlockY();
+        if (vert) {
+            y1 = s.pos1.getWorld().getMinHeight();
+            y2 = s.pos1.getWorld().getMaxHeight() - 1;
+        }
         Region r = new Region(name, world,
-                s.pos1.getBlockX(), s.pos1.getBlockY(), s.pos1.getBlockZ(),
-                s.pos2.getBlockX(), s.pos2.getBlockY(), s.pos2.getBlockZ(),
+                s.pos1.getBlockX(), y1, s.pos1.getBlockZ(),
+                s.pos2.getBlockX(), y2, s.pos2.getBlockZ(),
                 p.getUniqueId(), p.getName(),
                 plugin.cfg().defaultPvp, plugin.cfg().defaultExplosions,
                 plugin.cfg().defaultFireSpread, plugin.cfg().defaultMechanisms,
@@ -291,7 +326,8 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         plugin.storage().saveAsync();
         plugin.selections().clear(p.getUniqueId());
         send(p, "<gradient:#5DFF6E:#00E5FF>Регион " + name + " создан!</gradient> <gray>"
-                + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ() + " — бесплатно");
+                + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
+                + (vert ? " (на всю высоту)" : "") + " — бесплатно");
         if (plugin.cfg().sounds) {
             p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1f);
         }
@@ -365,15 +401,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             send(p, "&cТолько владелец.");
             return;
         }
-        if (plugin.menus().confirmDelete(p, r.name, 15000L)) {
-            plugin.storage().remove(r.name);
-            plugin.storage().saveAsync();
-            send(p, "&aРегион &f" + r.name + " &aудалён.");
-            plugin.menus().mainMenu(p);
-        } else {
-            send(p, "&cТочно удалить &f" + r.name + "&c? Повтори кнопку (15 сек).");
-            plugin.menus().regionMenu(p, r);
-        }
+        plugin.menus().deleteConfirmMenu(p, r);
     }
 
     private void giveWand(Player p) {

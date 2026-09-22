@@ -2,7 +2,7 @@
 # Цвета: legacy '&' ИЛИ MiniMessage <gradient:#5DFF6E:#00E5FF>текст</gradient>,
 # <rainbow>, <red>, <gray> и т.д. Внутри MiniMessage коды '&' не работают!
 general:
-  prefix: '<gradient:#5DFF6E:#00E5FF>[RG]</gradient> <gray>'
+  prefix: '<gradient:#FFD76A:#7AD9FF>[RG]</gradient> <gray>'
   # golden axe wand (does NOT conflict with WorldEdit wooden axe)
   wand: GOLDEN_AXE
 
@@ -28,3 +28,10 @@ protection:
 gui:
   title-info: '<gradient:#5DFF6E:#00E5FF>Регион {name}</gradient>'
   sounds: true
+
+# Heaven style: gradient colors used in chat menus
+theme:
+  from: "#FFD76A"
+  to: "#7AD9FF"
+  # actionbar title when entering your region
+  enter-title: true

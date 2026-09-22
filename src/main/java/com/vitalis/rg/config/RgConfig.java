@@ -27,6 +27,9 @@ public class RgConfig {
 
     public String titleInfo;
     public boolean sounds;
+    public String themeFrom;
+    public String themeTo;
+    public boolean enterTitle;
 
     public void load(JavaPlugin plugin) {
         plugin.saveDefaultConfig();
@@ -57,5 +60,8 @@ public class RgConfig {
 
         titleInfo = c.getString("gui.title-info", "&8Регион &a{name}");
         sounds = c.getBoolean("gui.sounds", true);
+        themeFrom = c.getString("theme.from", "#FFD76A");
+        themeTo = c.getString("theme.to", "#7AD9FF");
+        enterTitle = c.getBoolean("theme.enter-title", true);
     }
 }

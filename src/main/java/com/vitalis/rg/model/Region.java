@@ -10,7 +10,7 @@ import java.util.UUID;
 
 /** Cuboid region: two corners, owner + owners/members, two flags. */
 public class Region {
-    public final String name;
+    public String name;
     public final String world;
     public int minX, minY, minZ;
     public int maxX, maxY, maxZ;

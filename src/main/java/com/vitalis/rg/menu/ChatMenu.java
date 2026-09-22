@@ -12,14 +12,14 @@ import org.bukkit.entity.Player;
 import java.util.*;
 
 /**
- * All management happens in chat with clickable buttons.
+ * All management happens in chat with clickable buttons (Heaven style).
  * No GUI windows: /area prints this menu, buttons run hidden /area routes.
  */
 public class ChatMenu {
 
-    public enum InputKind { CREATE_NAME, ADD_OWNER, DEL_OWNER, ADD_MEMBER, DEL_MEMBER }
+    public enum InputKind { CREATE_NAME, RENAME, ADD_OWNER, DEL_OWNER, ADD_MEMBER, DEL_MEMBER }
 
-    public record Pending(String region, InputKind kind) {}
+    public record Pending(String region, InputKind kind, boolean vert) {}
 
     private final Regions plugin;
     private final Map<UUID, Pending> inputs = new HashMap<>();
@@ -31,7 +31,11 @@ public class ChatMenu {
     }
 
     public void markInput(Player p, String region, InputKind kind) {
-        inputs.put(p.getUniqueId(), new Pending(region, kind));
+        markInput(p, region, kind, false);
+    }
+
+    public void markInput(Player p, String region, InputKind kind, boolean vert) {
+        inputs.put(p.getUniqueId(), new Pending(region, kind, vert));
     }
 
     public Pending takeInput(Player p) {
@@ -55,7 +59,23 @@ public class ChatMenu {
         return false;
     }
 
-    // ---------------- buttons ----------------
+    // ---------------- style ----------------
+
+    /** Heaven gradient header. */
+    public String grad(String text) {
+        return "<gradient:" + plugin.cfg().themeFrom + ":" + plugin.cfg().themeTo + ">" + text + "</gradient>";
+    }
+
+    private static final String LINE = "<gray><st>                                        </st>";
+
+    private void frameTop(Player p, String title) {
+        p.sendMessage(Msg.color(LINE));
+        p.sendMessage(Msg.color("  " + grad("◆ " + title + " ◆")));
+    }
+
+    private void frameBottom(Player p) {
+        p.sendMessage(Msg.color(LINE));
+    }
 
     /** Green/red clickable button. */
     public static Component btn(String text, NamedTextColor color, String command, String hover) {
@@ -82,6 +102,10 @@ public class ChatMenu {
                 org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
     }
 
+    private static String flagState(boolean on) {
+        return on ? "<green>● ВКЛ" : "<red>● ВЫКЛ";
+    }
+
     // ---------------- main menu (/area) ----------------
 
     public void mainMenu(Player p) {
@@ -91,14 +115,18 @@ public class ChatMenu {
             if (r.isOwner(p.getUniqueId()) || r.isMember(p.getUniqueId())) mine.add(r);
         }
         int max = plugin.cfg().maxPerPlayer;
-        p.sendMessage(Msg.color("<gradient:#5DFF6E:#00E5FF>Регионы</gradient> <gray>(" + mine.size() + "/" + max + "):"));
+        frameTop(p, "Регионы (" + mine.size() + "/" + max + ")");
         if (mine.isEmpty()) {
             send(p, "&cРегионов нет. &7Создай первый кнопкой ниже.");
         }
         for (Region r : mine) {
-            String role = r.isOwner(p.getUniqueId()) ? "<green>владелец" : "<aqua>игрок";
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + r.name + " &7"
-                            + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ() + " " + role + " ")
+            String role = r.isOwner(p.getUniqueId()) ? "<green>◆ владелец" : "<aqua>◆ игрок";
+            Component hover = Msg.color("<gray>" + r.world + " " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
+                    + "\nВладелец: " + r.ownerName
+                    + "\nИгроков: " + r.members.size()
+                    + "\nОгонь/PVP/взрывы: " + (r.fireSpread ? "да" : "нет") + "/" + (r.pvp ? "да" : "нет") + "/" + (r.explosions ? "да" : "нет"));
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + r.name + " " + role + " ")
+                    .hoverEvent(HoverEvent.showText(hover))
                     .append(btn("настроить", NamedTextColor.GREEN, "/area sel " + r.name, "Открыть настройки"))
                     .append(Component.text(" "))
                     .append(btn("тп", NamedTextColor.AQUA, "/area tp " + r.name, "Телепорт в регион")));
@@ -107,8 +135,11 @@ public class ChatMenu {
         var sel = plugin.selections().get(p.getUniqueId());
         p.sendMessage(Component.empty());
         if (sel.complete()) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Выделено, создавай: ")
-                    .append(btn("+ Создать регион", NamedTextColor.GREEN, "/area mk", "Придумать название в чате")));
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Выделено, как приватим?"));
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "")
+                    .append(btn("На всю высоту", NamedTextColor.GOLD, "/area mkvert", "От bedrock до неба"))
+                    .append(Component.text(" "))
+                    .append(btn("Как выделил", NamedTextColor.GREEN, "/area mk", "По выбранной высоте")));
         } else {
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Выдели территорию: ")
                     .append(btn("точка 1", NamedTextColor.GREEN, "/area pos1", "Поставить точку 1 где стоишь"))
@@ -117,6 +148,7 @@ public class ChatMenu {
                     .append(Component.text(" "))
                     .append(btn("жезл", NamedTextColor.GOLD, "/area gwand", "Выдать золотой топор-жезл")));
         }
+        frameBottom(p);
     }
 
     // ---------------- region menu ----------------
@@ -129,9 +161,9 @@ public class ChatMenu {
             send(p, "&cНет доступа.");
             return;
         }
-        p.sendMessage(Msg.color("<gradient:#5DFF6E:#00E5FF>Регион " + r.name + "</gradient> "
-                + "<gray>" + r.world + " " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
-                + " | владелец: " + r.ownerName));
+        frameTop(p, "Регион " + r.name);
+        send(p, "<gray>" + r.world + " · " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
+                + " · владелец " + r.ownerName);
         // owners: names, then [+] [−] (nick typed in chat)
         var oLine = Component.text();
         oLine.append(Component.text("Владельцы: ").color(NamedTextColor.GOLD));
@@ -162,7 +194,7 @@ public class ChatMenu {
                     .append(btn("−", NamedTextColor.RED, "/area memdel " + r.name, "Убрать: ник в чат"));
         }
         p.sendMessage(mLine.build());
-        // flags (owners only clickable, members see state)
+        // flags (owners clickable, members see state)
         var fLine = Component.text();
         fLine.append(Component.text("Флаги: ").color(NamedTextColor.GRAY));
         fLine.append(flagBtn("Огонь", r.fireSpread, owner ? "/area tgl " + r.name + " fire" : null)).append(Component.text(" "));
@@ -177,9 +209,21 @@ public class ChatMenu {
             aLine.append(btn("Телепорт", NamedTextColor.AQUA, "/area tp " + r.name, "В центр региона")).append(Component.text(" "));
         }
         if (owner) {
+            aLine.append(btn("Высота", NamedTextColor.GOLD, "/area vert " + r.name, "Растянуть от bedrock до неба")).append(Component.text(" "));
+            aLine.append(btn("Переименовать", NamedTextColor.YELLOW, "/area ren " + r.name, "Новое название в чат")).append(Component.text(" "));
             aLine.append(btn("Удалить", NamedTextColor.RED, "/area del " + r.name, "Удаление с подтверждением"));
         }
         p.sendMessage(aLine.build());
+        frameBottom(p);
+    }
+
+    /** Delete confirm step with explicit Yes/Cancel buttons. */
+    public void deleteConfirmMenu(Player p, Region r) {
+        p.sendMessage(Msg.color(plugin.cfg().prefix + "<red>Точно удалить регион " + r.name + "?"));
+        p.sendMessage(Msg.color(plugin.cfg().prefix + "")
+                .append(btn("Да, удалить", NamedTextColor.RED, "/area delyes " + r.name, "Безвозвратно"))
+                .append(Component.text(" "))
+                .append(btn("Отмена", NamedTextColor.GREEN, "/area sel " + r.name, "Вернуться")));
     }
 
     private static Component flagBtn(String name, boolean on, String command) {
@@ -190,5 +234,10 @@ public class ChatMenu {
         }
         return c.clickEvent(ClickEvent.runCommand(command))
                 .hoverEvent(HoverEvent.showText(Component.text("Клик — переключить")));
+    }
+
+    /** Small helper for tests: renders a button without server. */
+    public static String buttonText(String text) {
+        return "[" + text + "]";
     }
 }
