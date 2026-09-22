@@ -12,7 +12,7 @@ class RegionTest {
     private Region region() {
         return new Region("home", "world",
                 10, 60, 10, 20, 70, 20,
-                UUID.randomUUID(), "Steve", false, false);
+                UUID.randomUUID(), "Steve", false, false, false, true, true);
     }
 
     @Test
@@ -41,7 +41,7 @@ class RegionTest {
     void intersectsOverlap() {
         Region a = region();
         Region b = new Region("b", "world", 15, 60, 15, 30, 80, 30,
-                UUID.randomUUID(), "Alex", false, false);
+                UUID.randomUUID(), "Alex", false, false, false, true, true);
         assertTrue(a.intersects(b));
         assertTrue(b.intersects(a));
     }
@@ -51,7 +51,7 @@ class RegionTest {
         // shared border plane x=20 -> treated as overlap (safe default: deny create)
         Region a = region();
         Region b = new Region("b", "world", 20, 60, 10, 30, 70, 20,
-                UUID.randomUUID(), "Alex", false, false);
+                UUID.randomUUID(), "Alex", false, false, false, true, true);
         assertTrue(a.intersects(b));
     }
 
@@ -59,7 +59,7 @@ class RegionTest {
     void intersectsSeparate() {
         Region a = region();
         Region b = new Region("b", "world", 21, 60, 10, 30, 70, 20,
-                UUID.randomUUID(), "Alex", false, false);
+                UUID.randomUUID(), "Alex", false, false, false, true, true);
         assertFalse(a.intersects(b));
         assertFalse(b.intersects(a));
     }
@@ -68,7 +68,7 @@ class RegionTest {
     void intersectsDifferentWorld() {
         Region a = region();
         Region b = new Region("b", "nether", 10, 60, 10, 20, 70, 20,
-                UUID.randomUUID(), "Alex", false, false);
+                UUID.randomUUID(), "Alex", false, false, false, true, true);
         assertFalse(a.intersects(b));
     }
 
@@ -82,11 +82,27 @@ class RegionTest {
     }
 
     @Test
+    void flagsStored() {
+        Region r = region();
+        assertFalse(r.pvp);
+        assertFalse(r.explosions);
+        assertFalse(r.fireSpread);
+        assertTrue(r.mechanisms);
+        assertTrue(r.homes);
+        r.fireSpread = true;
+        r.mechanisms = false;
+        r.homes = false;
+        assertTrue(r.fireSpread);
+        assertFalse(r.mechanisms);
+        assertFalse(r.homes);
+    }
+
+    @Test
     void access() {
         UUID owner = UUID.randomUUID();
         UUID member = UUID.randomUUID();
         UUID stranger = UUID.randomUUID();
-        Region r = new Region("home", "world", 0, 0, 0, 5, 5, 5, owner, "Owner", false, false);
+        Region r = new Region("home", "world", 0, 0, 0, 5, 5, 5, owner, "Owner", false, false, false, true, true);
         r.members.put(member, "Member");
 
         assertTrue(r.isOwner(owner));

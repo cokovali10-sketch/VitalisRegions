@@ -22,11 +22,19 @@ public class Region {
     public final Map<UUID, String> members = new LinkedHashMap<>();
     public boolean pvp;
     public boolean explosions;
+    /** fire may spread inside/from outside */
+    public boolean fireSpread;
+    /** redstone + dispensers work */
+    public boolean mechanisms;
+    /** outsiders may /sethome here */
+    public boolean homes;
     public final long createdAt;
 
     public Region(String name, String world,
                   int x1, int y1, int z1, int x2, int y2, int z2,
-                  UUID owner, String ownerName, boolean pvp, boolean explosions) {
+                  UUID owner, String ownerName,
+                  boolean pvp, boolean explosions, boolean fireSpread,
+                  boolean mechanisms, boolean homes) {
         this.name = name;
         this.world = world;
         this.minX = Math.min(x1, x2);
@@ -40,6 +48,9 @@ public class Region {
         this.owners.put(owner, ownerName);
         this.pvp = pvp;
         this.explosions = explosions;
+        this.fireSpread = fireSpread;
+        this.mechanisms = mechanisms;
+        this.homes = homes;
         this.createdAt = System.currentTimeMillis();
     }
 

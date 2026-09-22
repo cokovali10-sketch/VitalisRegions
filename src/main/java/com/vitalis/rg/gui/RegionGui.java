@@ -116,13 +116,22 @@ public class RegionGui {
         inv.setItem(25, button(Material.RED_WOOL, "&c− Убрать",
                 "&7Клик — ввести ник в чат"));
 
-        // flags row
+        // flags row: green = on, red/gray = off
+        inv.setItem(27, button(Material.FIRE_CHARGE,
+                r.fireSpread ? "&aОгонь: ВКЛ" : "&cОгонь: ВЫКЛ",
+                "&7Распространение огня", "&7Клик — переключить"));
         inv.setItem(28, button(r.pvp ? Material.REDSTONE_TORCH : Material.LEVER,
-                r.pvp ? "&aPVP: ВКЛ" : "&7PVP: ВЫКЛ",
+                r.pvp ? "&aPVP: ВКЛ" : "&cPVP: ВЫКЛ",
                 "&7Клик — переключить"));
-        inv.setItem(30, button(Material.TNT,
-                r.explosions ? "&aВзрывы: ВКЛ" : "&7Взрывы: ВЫКЛ",
+        inv.setItem(29, button(Material.TNT,
+                r.explosions ? "&aВзрывы: ВКЛ" : "&cВзрывы: ВЫКЛ",
                 "&7Клик — переключить"));
+        inv.setItem(30, button(Material.REPEATER,
+                r.mechanisms ? "&aМеханизмы: ВКЛ" : "&cМеханизмы: ВЫКЛ",
+                "&7Редстоун и раздатчики", "&7Клик — переключить"));
+        inv.setItem(31, button(Material.RED_BED,
+                r.homes ? "&aХомы: ВКЛ" : "&cХомы: ВЫКЛ",
+                "&7Чужие могут ставить /sethome", "&7Клик — переключить"));
         inv.setItem(32, button(Material.REDSTONE_BLOCK, "&4Удалить регион",
                 "&7Клик — запросить удаление", "&7Потом клик ещё раз для подтверждения"));
         inv.setItem(34, button(Material.BARRIER, "&cЗакрыть"));

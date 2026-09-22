@@ -21,6 +21,9 @@ public class RgConfig {
 
     public boolean defaultPvp;
     public boolean defaultExplosions;
+    public boolean defaultFireSpread;
+    public boolean defaultMechanisms;
+    public boolean defaultHomes;
 
     public String titleInfo;
     public boolean sounds;
@@ -48,6 +51,9 @@ public class RgConfig {
 
         defaultPvp = c.getBoolean("protection.default-pvp", false);
         defaultExplosions = c.getBoolean("protection.default-explosions", false);
+        defaultFireSpread = c.getBoolean("protection.default-fire-spread", false);
+        defaultMechanisms = c.getBoolean("protection.default-mechanisms", true);
+        defaultHomes = c.getBoolean("protection.default-homes", true);
 
         titleInfo = c.getString("gui.title-info", "&8Регион &a{name}");
         sounds = c.getBoolean("gui.sounds", true);

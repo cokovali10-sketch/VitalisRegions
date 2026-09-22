@@ -151,7 +151,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             Region tmp = new Region("?", s.pos1.getWorld().getName(),
                     s.pos1.getBlockX(), s.pos1.getBlockY(), s.pos1.getBlockZ(),
                     s.pos2.getBlockX(), s.pos2.getBlockY(), s.pos2.getBlockZ(),
-                    p.getUniqueId(), p.getName(), false, false);
+                    p.getUniqueId(), p.getName(), false, false, false, true, true);
             send(p, "&7Выделено: &f" + tmp.sizeX() + "x" + tmp.sizeY() + "x" + tmp.sizeZ());
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Дальше: ")
                     .append(Component.text("[создать]")
@@ -202,7 +202,9 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 s.pos1.getBlockX(), y1, s.pos1.getBlockZ(),
                 s.pos2.getBlockX(), y2, s.pos2.getBlockZ(),
                 p.getUniqueId(), p.getName(),
-                plugin.cfg().defaultPvp, plugin.cfg().defaultExplosions);
+                plugin.cfg().defaultPvp, plugin.cfg().defaultExplosions,
+                plugin.cfg().defaultFireSpread, plugin.cfg().defaultMechanisms,
+                plugin.cfg().defaultHomes);
 
         if (!Perms.has(p, "unlimited")) {
             int mine = plugin.storage().countBy(p.getUniqueId());

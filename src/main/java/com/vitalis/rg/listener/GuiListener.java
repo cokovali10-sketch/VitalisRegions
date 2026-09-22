@@ -107,6 +107,13 @@ public class GuiListener implements Listener {
             case 16 -> askInput(p, r, RegionGui.InputKind.DEL_OWNER, "&eВведи ник владельца для удаления:");
             case 19 -> askInput(p, r, RegionGui.InputKind.ADD_MEMBER, "&eВведи ник игрока в чат:");
             case 25 -> askInput(p, r, RegionGui.InputKind.DEL_MEMBER, "&eВведи ник игрока для удаления:");
+            case 27 -> {
+                r.fireSpread = !r.fireSpread;
+                plugin.storage().saveAsync();
+                clickSound(p);
+                plugin.gui().openInfo(p, r);
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Огонь: " + (r.fireSpread ? "&aВКЛ" : "&cВЫКЛ")));
+            }
             case 28 -> {
                 r.pvp = !r.pvp;
                 plugin.storage().saveAsync();
@@ -114,12 +121,26 @@ public class GuiListener implements Listener {
                 plugin.gui().openInfo(p, r);
                 p.sendMessage(Msg.color(plugin.cfg().prefix + "&7PVP: " + (r.pvp ? "&aВКЛ" : "&cВЫКЛ")));
             }
-            case 30 -> {
+            case 29 -> {
                 r.explosions = !r.explosions;
                 plugin.storage().saveAsync();
                 clickSound(p);
                 plugin.gui().openInfo(p, r);
                 p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Взрывы: " + (r.explosions ? "&aВКЛ" : "&cВЫКЛ")));
+            }
+            case 30 -> {
+                r.mechanisms = !r.mechanisms;
+                plugin.storage().saveAsync();
+                clickSound(p);
+                plugin.gui().openInfo(p, r);
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Механизмы: " + (r.mechanisms ? "&aВКЛ" : "&cВЫКЛ")));
+            }
+            case 31 -> {
+                r.homes = !r.homes;
+                plugin.storage().saveAsync();
+                clickSound(p);
+                plugin.gui().openInfo(p, r);
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Хомы: " + (r.homes ? "&aВКЛ" : "&cВЫКЛ")));
             }
             case 32 -> {
                 if (plugin.gui().confirmDelete(p, r.name, 15000L)) {

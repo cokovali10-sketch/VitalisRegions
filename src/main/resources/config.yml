@@ -18,9 +18,12 @@ economy:
   symbol: "$"
 
 protection:
-  # default flags for new regions
+  # default flags for new regions (green = on, red = off in GUI)
   default-pvp: false
   default-explosions: false
+  default-fire-spread: false
+  default-mechanisms: true
+  default-homes: true
 
 gui:
   title-info: '<gradient:#5DFF6E:#00E5FF>Регион {name}</gradient>'

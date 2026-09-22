@@ -40,7 +40,9 @@ public class RegionStorage {
                 Region r = new Region(key, s.getString("world", "world"),
                         min[0], min[1], min[2], max[0], max[1], max[2],
                         owner, s.getString("ownerName", "?"),
-                        s.getBoolean("pvp", false), s.getBoolean("explosions", false));
+                        s.getBoolean("pvp", false), s.getBoolean("explosions", false),
+                        s.getBoolean("fire-spread", false), s.getBoolean("mechanisms", true),
+                        s.getBoolean("homes", true));
                 readMap(s.getStringList("owners"), r.owners);
                 readMap(s.getStringList("members"), r.members);
                 r.owners.putIfAbsent(owner, r.ownerName);
@@ -89,6 +91,9 @@ public class RegionStorage {
             y.set(p + ".members", writeMap(r.members));
             y.set(p + ".pvp", r.pvp);
             y.set(p + ".explosions", r.explosions);
+            y.set(p + ".fire-spread", r.fireSpread);
+            y.set(p + ".mechanisms", r.mechanisms);
+            y.set(p + ".homes", r.homes);
         }
         try {
             y.save(file);

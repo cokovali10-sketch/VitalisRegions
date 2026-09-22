@@ -268,10 +268,54 @@ public class ProtectListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onFireSpread(org.bukkit.event.block.BlockSpreadEvent e) {
         Block target = e.getNewState().getBlock();
+        Region r = plugin.storage().at(target.getWorld().getName(),
+                target.getX(), target.getY(), target.getZ());
+        if (r == null || r.fireSpread) return;
         Block source = e.getSource();
-        String t = regionNameAt(target);
-        if (t != null && !sameRegion(t, regionNameAt(source))) {
+        if (!sameRegion(r.name.toLowerCase(java.util.Locale.ROOT), regionNameAt(source))) {
             e.setCancelled(true);
+        }
+    }
+
+    // ---------------- mechanisms flag ----------------
+    // OFF = redstone frozen + dispensers silent. Pistons stay always guarded (see above).
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onRedstone(org.bukkit.event.block.BlockRedstoneEvent e) {
+        Block b = e.getBlock();
+        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
+        if (r != null && !r.mechanisms) {
+            e.setNewCurrent(0);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onDispense(org.bukkit.event.block.BlockDispenseEvent e) {
+        Block b = e.getBlock();
+        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
+        if (r != null && !r.mechanisms) {
+            e.setCancelled(true);
+        }
+    }
+
+    // ---------------- homes flag ----------------
+    // OFF = outsiders cannot /sethome here (Essentials + aliases).
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onSetHome(org.bukkit.event.player.PlayerCommandPreprocessEvent e) {
+        String msg = e.getMessage().toLowerCase(java.util.Locale.ROOT);
+        if (!msg.equals("/sethome") && !msg.startsWith("/sethome ")
+                && !msg.equals("/esethome") && !msg.startsWith("/esethome ")
+                && !msg.equals("/essentials:sethome") && !msg.startsWith("/essentials:sethome ")) return;
+        Player p = e.getPlayer();
+        if (bypass(p)) return;
+        org.bukkit.Location loc = p.getLocation();
+        Region r = plugin.storage().at(loc.getWorld().getName(),
+                loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        if (r == null || r.homes) return;
+        if (!r.canBuild(p.getUniqueId())) {
+            e.setCancelled(true);
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cВ регионе &f" + r.name + " &cставить хомы запрещено."));
         }
     }
 
