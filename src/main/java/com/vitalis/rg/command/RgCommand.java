@@ -216,10 +216,14 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         for (Map.Entry<UUID, String> e : map.entrySet()) {
             if (owner && e.getKey().equals(r.owner)) continue; // creator stays
             entries.add(new com.vitalis.rg.menu.DialogMenu.DialogMenuEntry(e.getKey().toString(), e.getValue()));
+            if (entries.size() >= 25) break; // dialog window stays readable
         }
         if (entries.isEmpty()) {
             send(p, owner ? "&7Других владельцев нет." : "&7Список игроков пуст.");
             return;
+        }
+        if ((owner ? r.owners.size() : r.members.size()) > 25) {
+            send(p, "&7Показаны первые 25.");
         }
         try {
             List<io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry> opts = new ArrayList<>();
@@ -354,7 +358,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         send(p, "<gradient:#5DFF6E:#00E5FF>Как приватить:</gradient>");
         send(p, "&71. Встань в один угол, введи &e/area pos1");
         send(p, "&72. Встань в другой угол, введи &e/area pos2");
-        send(p, "&73. Введи &e/area &7и нажми &a[+ Создать регион]");
+        send(p, "&73. Введи &e/area &7и выбери &6[На всю высоту] &7или &a[Как выделил]");
         send(p, "&7Владельцев и игроков добавляют кнопки &a[+] &7и &c[−] &7— ник пишется в чат.");
         send(p, "&7Удалить регион: &e/area remove <название>");
     }
@@ -499,7 +503,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         }
         for (Region o : plugin.storage().all()) {
             if (o.intersects(r)) {
-                send(p, "&cПересекается с регионом &f" + o.name + " &c(" + o.ownerName + ")");
+                send(p, "&cТут уже есть регион &f" + o.name + " &c— выбери другое место (края тоже заняты).");
                 return;
             }
         }
@@ -534,9 +538,19 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             send(p, "&cМир не загружен.");
             return;
         }
-        // rebuild with full height (Region fields are mutable for this)
+        int oldMin = r.minY, oldMax = r.maxY;
         r.minY = w.getMinHeight();
         r.maxY = w.getMaxHeight() - 1;
+        // expanded region must not swallow neighbours — revert on overlap
+        for (Region o : plugin.storage().all()) {
+            if (o == r || o.name.equalsIgnoreCase(r.name)) continue;
+            if (o.intersects(r)) {
+                r.minY = oldMin;
+                r.maxY = oldMax;
+                send(p, "&cТут уже есть регион &f" + o.name + " &c— на всю высоту не растянуть.");
+                return;
+            }
+        }
         plugin.storage().saveAsync();
         send(p, "&aРегион &f" + r.name + " &aрастянут на всю высоту.");
         plugin.menus().regionMenu(p, r);

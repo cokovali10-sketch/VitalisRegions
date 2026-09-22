@@ -105,8 +105,9 @@ public class GuiListener implements Listener {
     }
 
     // ---------------- chat input ----------------
+    // ignoreCancelled: muted/blocked messages must not be eaten as nick input
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onChat(AsyncChatEvent e) {
         Player p = e.getPlayer();
         ChatMenu.Pending in = plugin.menus().takeInput(p);
