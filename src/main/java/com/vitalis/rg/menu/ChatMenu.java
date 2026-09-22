@@ -75,8 +75,37 @@ public class ChatMenu {
     }
 
     private void clickSound(Player p) {
+        sClick(plugin, p);
+    }
+
+    /** Distinct sounds per action (all respect gui.sounds). */
+    public static void sClick(Regions plugin, Player p) {
         if (plugin.cfg().sounds) p.playSound(p.getLocation(),
                 org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
+    }
+
+    /** plus/add/create: high bright click */
+    public static void sPlus(Regions plugin, Player p) {
+        if (plugin.cfg().sounds) p.playSound(p.getLocation(),
+                org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1.5f);
+    }
+
+    /** minus/remove: low click */
+    public static void sMinus(Regions plugin, Player p) {
+        if (plugin.cfg().sounds) p.playSound(p.getLocation(),
+                org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 0.6f);
+    }
+
+    /** flag toggle: lever snap */
+    public static void sToggle(Regions plugin, Player p) {
+        if (plugin.cfg().sounds) p.playSound(p.getLocation(),
+                org.bukkit.Sound.BLOCK_LEVER_CLICK, 0.7f, 1f);
+    }
+
+    /** delete: heavy anvil thud */
+    public static void sDelete(Regions plugin, Player p) {
+        if (plugin.cfg().sounds) p.playSound(p.getLocation(),
+                org.bukkit.Sound.BLOCK_ANVIL_LAND, 0.5f, 1.2f);
     }
 
     private static String flagState(boolean on) {
@@ -96,15 +125,25 @@ public class ChatMenu {
         if (mine.isEmpty()) {
             send(p, "&cРегионов нет. &7Создай первый кнопкой ниже.");
         }
+        // compact mode for big owners: one short line per region with › divider
+        boolean compact = mine.size() > 8;
+        int n = 0;
         for (Region r : mine) {
+            n++;
             String role = r.isOwner(p.getUniqueId()) ? "<gold>★" : "<aqua>●";
             Component hover = Msg.color("<gray>" + r.world + " " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
                     + "\nВладелец: " + r.ownerName
                     + "\nИгроков: " + r.members.size()
                     + "\nОгонь/взрывы: " + (r.fireSpread ? "да" : "нет") + "/" + (r.explosions ? "да" : "нет"));
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + r.name + " " + role + " ")
-                    .hoverEvent(HoverEvent.showText(hover))
-                    .append(btn("настроить", NamedTextColor.GREEN, "/area sel " + r.name, "Открыть настройки")));
+            if (compact) {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&8" + n + ". &f" + r.name + " " + role + " ")
+                        .hoverEvent(HoverEvent.showText(hover))
+                        .append(btn("»", NamedTextColor.GREEN, "/area sel " + r.name, "Открыть настройки")));
+            } else {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + r.name + " " + role + " ")
+                        .hoverEvent(HoverEvent.showText(hover))
+                        .append(btn("настроить", NamedTextColor.GREEN, "/area sel " + r.name, "Открыть настройки")));
+            }
         }
         // selection row
         var sel = plugin.selections().get(p.getUniqueId());

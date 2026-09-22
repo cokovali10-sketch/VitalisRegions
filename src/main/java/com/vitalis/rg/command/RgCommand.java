@@ -113,6 +113,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 plugin.storage().remove(r.name);
                 plugin.storage().saveAsync();
                 send(p, "&aРегион &f" + r.name + " &aудалён.");
+                ChatMenu.sDelete(plugin, p);
                 plugin.menus().mainMenu(p);
             }
             case "ren" -> {
@@ -329,9 +330,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 send(p, "&a" + realName + " &7добавлен в &f" + r.name);
             }
         }
-        if (plugin.cfg().sounds) {
-            p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
-        }
+        ChatMenu.sPlus(plugin, p);
         plugin.menus().regionMenu(p, r);
     }
 
@@ -404,9 +403,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 send(p, "&a" + realName + " &7добавлен в &f" + r.name);
             }
         }
-        if (plugin.cfg().sounds) {
-            p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
-        }
+        ChatMenu.sPlus(plugin, p);
         plugin.menus().regionMenu(p, r);
     }
 
@@ -432,6 +429,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 send(p, "&eИгрок &7убран из региона.");
             }
         }
+        ChatMenu.sMinus(plugin, p);
         plugin.menus().regionMenu(p, r);
     }
 
@@ -461,6 +459,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 send(p, "&7Такого игрока нет.");
             }
         }
+        ChatMenu.sMinus(plugin, p);
         plugin.menus().regionMenu(p, r);
     }
 
@@ -520,6 +519,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         plugin.storage().remove(r.name);
         plugin.storage().saveAsync();
         send(p, "&aРегион &f" + r.name + " &aудалён.");
+        ChatMenu.sDelete(plugin, p);
     }
 
     // ---------------- hidden: create ----------------
@@ -671,9 +671,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             default -> { return; }
         }
         plugin.storage().saveAsync();
-        if (plugin.cfg().sounds) {
-            p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
-        }
+        ChatMenu.sToggle(plugin, p);
         plugin.menus().regionMenu(p, r);
         boolean on = flag.equalsIgnoreCase("fire") ? r.fireSpread
                 : flag.equalsIgnoreCase("expl") ? r.explosions
