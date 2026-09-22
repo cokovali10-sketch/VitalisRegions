@@ -3,7 +3,7 @@ package com.vitalis.rg;
 import com.vitalis.rg.command.RgCommand;
 import com.vitalis.rg.config.RgConfig;
 import com.vitalis.rg.economy.VaultHook;
-import com.vitalis.rg.gui.RegionGui;
+import com.vitalis.rg.menu.ChatMenu;
 import com.vitalis.rg.listener.GuiListener;
 import com.vitalis.rg.listener.ProtectListener;
 import com.vitalis.rg.select.SelectionManager;
@@ -11,14 +11,15 @@ import com.vitalis.rg.storage.RegionStorage;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * VitalisRegions v1.0.0 - Paper/Purpur 1.21.11.
- * /area pos1/pos2/wand/create/delete/list/info + GUI members/owners + protection.
+ * VitalisRegions - Paper/Purpur 1.21.11.
+ * /area, /area pos1/pos2/remove + chat button menus. No GUI windows.
  */
 public class Regions extends JavaPlugin {
     private final RgConfig cfg = new RgConfig();
     private RegionStorage storage;
     private final SelectionManager selections = new SelectionManager();
-    private RegionGui gui;
+    private ChatMenu menus;
+    private RgCommand commands;
     private final VaultHook economy = new VaultHook(this);
 
     @Override
@@ -26,7 +27,7 @@ public class Regions extends JavaPlugin {
         cfg.load(this);
         storage = new RegionStorage(this);
         storage.load();
-        gui = new RegionGui(cfg, storage);
+        menus = new ChatMenu(this);
 
         if (economy.setup()) {
             getLogger().info("Vault hooked, claim price: " + cfg.claimPrice);
@@ -34,10 +35,10 @@ public class Regions extends JavaPlugin {
             getLogger().info("Vault not found, claims are free.");
         }
 
-        RgCommand cmd = new RgCommand(this);
-        if (getCommand("rg") != null) {
-            getCommand("rg").setExecutor(cmd);
-            getCommand("rg").setTabCompleter(cmd);
+        commands = new RgCommand(this);
+        if (getCommand("area") != null) {
+            getCommand("area").setExecutor(commands);
+            getCommand("area").setTabCompleter(commands);
         }
         getServer().getPluginManager().registerEvents(new GuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ProtectListener(this), this);
@@ -54,6 +55,7 @@ public class Regions extends JavaPlugin {
     public RgConfig cfg() { return cfg; }
     public RegionStorage storage() { return storage; }
     public SelectionManager selections() { return selections; }
-    public RegionGui gui() { return gui; }
+    public ChatMenu menus() { return menus; }
+    public RgCommand commands() { return commands; }
     public VaultHook economy() { return economy; }
 }

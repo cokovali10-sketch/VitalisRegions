@@ -150,6 +150,79 @@ public class ProtectListener implements Listener {
         }
     }
 
+    // ---------------- entities & co ----------------
+    // Punching frames/paintings, stripping armor stands, breaking boats,
+    // shearing чужой sheep — all of it is grief too.
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onHangingBreak(org.bukkit.event.hanging.HangingBreakByEntityEvent e) {
+        if (!(e.getRemover() instanceof Player p) || bypass(p)) return;
+        org.bukkit.Location loc = e.getEntity().getLocation();
+        Region r = plugin.storage().at(loc.getWorld().getName(),
+                loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        if (r == null) return;
+        if (!r.canBuild(p.getUniqueId())) {
+            e.setCancelled(true);
+            deny(p, r);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onArmorStand(org.bukkit.event.player.PlayerArmorStandManipulateEvent e) {
+        Player p = e.getPlayer();
+        if (bypass(p)) return;
+        org.bukkit.Location loc = e.getRightClicked().getLocation();
+        Region r = plugin.storage().at(loc.getWorld().getName(),
+                loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        if (r == null) return;
+        if (!r.canBuild(p.getUniqueId())) {
+            e.setCancelled(true);
+            deny(p, r);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onVehicleBreak(org.bukkit.event.vehicle.VehicleDestroyEvent e) {
+        if (!(e.getAttacker() instanceof Player p) || bypass(p)) return;
+        org.bukkit.Location loc = e.getVehicle().getLocation();
+        Region r = plugin.storage().at(loc.getWorld().getName(),
+                loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        if (r == null) return;
+        if (!r.canBuild(p.getUniqueId())) {
+            e.setCancelled(true);
+            deny(p, r);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityInteract(org.bukkit.event.player.PlayerInteractEntityEvent e) {
+        Player p = e.getPlayer();
+        if (bypass(p)) return;
+        org.bukkit.Location loc = e.getRightClicked().getLocation();
+        Region r = plugin.storage().at(loc.getWorld().getName(),
+                loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        if (r == null) return;
+        if (!r.canBuild(p.getUniqueId())) {
+            e.setCancelled(true);
+            deny(p, r);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onTrample(PlayerInteractEvent e) {
+        // PHYSICAL = pressure plates (free) + farmland trample (deny for outsiders)
+        if (e.getAction() != org.bukkit.event.block.Action.PHYSICAL) return;
+        Player p = e.getPlayer();
+        if (bypass(p)) return;
+        Block b = e.getClickedBlock();
+        if (b == null || b.getType() != Material.FARMLAND) return;
+        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
+        if (r == null) return;
+        if (!r.canBuild(p.getUniqueId())) {
+            e.setCancelled(true);
+        }
+    }
+
     // ---------------- pvp ----------------
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

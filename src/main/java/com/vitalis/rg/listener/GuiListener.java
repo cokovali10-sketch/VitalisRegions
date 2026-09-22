@@ -1,7 +1,7 @@
 package com.vitalis.rg.listener;
 
 import com.vitalis.rg.Regions;
-import com.vitalis.rg.gui.RegionGui;
+import com.vitalis.rg.menu.ChatMenu;
 import com.vitalis.rg.model.Region;
 import com.vitalis.rg.select.SelectionManager;
 import com.vitalis.rg.util.Msg;
@@ -9,32 +9,25 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.UUID;
 
-/** Info GUI clicks, chat nick input (+/-), wand selection. */
+/** Wand selection, chat nick/name input, nickname refresh. No GUI windows. */
 public class GuiListener implements Listener {
     private final Regions plugin;
 
     public GuiListener(Regions plugin) {
         this.plugin = plugin;
-    }
-
-    private void clickSound(Player p) {
-        if (plugin.cfg().sounds) p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.7f, 1f);
     }
 
     // ---------------- wand ----------------
@@ -61,7 +54,7 @@ public class GuiListener implements Listener {
             return;
         }
         if (s.complete()) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Готово → &e/area create <имя>"));
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Готово → &e/area &7(кнопка создания)"));
         }
     }
 
@@ -69,128 +62,17 @@ public class GuiListener implements Listener {
         return b.getX() + ", " + b.getY() + ", " + b.getZ();
     }
 
-    // ---------------- GUI ----------------
-
-    @EventHandler
-    public void onDrag(InventoryDragEvent e) {
-        if (e.getInventory().getHolder() instanceof RegionGui.InfoHolder) e.setCancelled(true);
-    }
-
-    @EventHandler
-    public void onClick(InventoryClickEvent e) {
-        if (!(e.getWhoClicked() instanceof Player p)) return;
-        if (!(e.getInventory().getHolder() instanceof RegionGui.InfoHolder)) return;
-        e.setCancelled(true);
-        String regionName = plugin.gui().openRegion(p);
-        if (regionName == null) return;
-        Region r = plugin.storage().get(regionName);
-        if (r == null) {
-            p.closeInventory();
-            return;
-        }
-        boolean owner = r.isOwner(p.getUniqueId());
-        int slot = e.getRawSlot();
-        if (!owner) {
-            // members/guests: view only, can close or jump to their list
-            if (slot == 34) {
-                p.closeInventory();
-            } else if (slot == 35) {
-                p.closeInventory();
-                p.performCommand("area list");
-            } else {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец меняет настройки (режим просмотра)."));
-            }
-            return;
-        }
-        switch (slot) {
-            case 10 -> askInput(p, r, RegionGui.InputKind.ADD_OWNER, "&eВведи ник нового владельца в чат:");
-            case 16 -> askInput(p, r, RegionGui.InputKind.DEL_OWNER, "&eВведи ник владельца для удаления:");
-            case 19 -> askInput(p, r, RegionGui.InputKind.ADD_MEMBER, "&eВведи ник игрока в чат:");
-            case 25 -> askInput(p, r, RegionGui.InputKind.DEL_MEMBER, "&eВведи ник игрока для удаления:");
-            case 27 -> {
-                r.fireSpread = !r.fireSpread;
-                plugin.storage().saveAsync();
-                clickSound(p);
-                plugin.gui().openInfo(p, r);
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Огонь: " + (r.fireSpread ? "&aВКЛ" : "&cВЫКЛ")));
-            }
-            case 28 -> {
-                r.pvp = !r.pvp;
-                plugin.storage().saveAsync();
-                clickSound(p);
-                plugin.gui().openInfo(p, r);
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7PVP: " + (r.pvp ? "&aВКЛ" : "&cВЫКЛ")));
-            }
-            case 29 -> {
-                r.explosions = !r.explosions;
-                plugin.storage().saveAsync();
-                clickSound(p);
-                plugin.gui().openInfo(p, r);
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Взрывы: " + (r.explosions ? "&aВКЛ" : "&cВЫКЛ")));
-            }
-            case 30 -> {
-                r.mechanisms = !r.mechanisms;
-                plugin.storage().saveAsync();
-                clickSound(p);
-                plugin.gui().openInfo(p, r);
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Механизмы: " + (r.mechanisms ? "&aВКЛ" : "&cВЫКЛ")));
-            }
-            case 31 -> {
-                r.homes = !r.homes;
-                plugin.storage().saveAsync();
-                clickSound(p);
-                plugin.gui().openInfo(p, r);
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Хомы: " + (r.homes ? "&aВКЛ" : "&cВЫКЛ")));
-            }
-            case 32 -> {
-                if (plugin.gui().confirmDelete(p, r.name, 15000L)) {
-                    plugin.storage().remove(r.name);
-                    plugin.storage().saveAsync();
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&aРегион &f" + r.name + " &aудалён."));
-                    p.closeInventory();
-                } else {
-                    clickSound(p);
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&cКликни удаление ещё раз для подтверждения (15 сек)."));
-                }
-            }
-            case 34 -> p.closeInventory();
-            case 35 -> {
-                // non-owners can use this too (just opens the clickable list)
-                p.closeInventory();
-                p.performCommand("area list");
-            }
-            default -> {}
-        }
-    }
-
-    private void askInput(Player p, Region r, RegionGui.InputKind kind, String prompt) {
-        p.closeInventory();
-        plugin.gui().markInput(p, r.name, kind);
-        p.sendMessage(Msg.color(plugin.cfg().prefix + prompt));
-        p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Пустое сообщение = отмена. Есть 30 сек."));
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (plugin.gui().takeInput(p) != null) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Ввод отменён (таймаут)."));
-            }
-        }, 30L * 20L);
-    }
-
-    @EventHandler
-    public void onClose(InventoryCloseEvent e) {
-        // keep open-region mapping until new info opened; harmless
-    }
-
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        plugin.gui().cancelInput(e.getPlayer());
+        plugin.menus().cancelInput(e.getPlayer());
     }
 
     /** Nicknames change — refresh stored display names on join (keys stay UUID). */
     @EventHandler
-    public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+    public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
         boolean changed = false;
-        for (com.vitalis.rg.model.Region r : plugin.storage().all()) {
+        for (Region r : plugin.storage().all()) {
             if (r.owner.equals(p.getUniqueId()) && !p.getName().equals(r.ownerName)) {
                 r.ownerName = p.getName();
                 changed = true;
@@ -207,22 +89,26 @@ public class GuiListener implements Listener {
         if (changed) plugin.storage().saveAsync();
     }
 
-    // ---------------- chat nick input ----------------
+    // ---------------- chat input ----------------
 
     @EventHandler
     public void onChat(AsyncChatEvent e) {
         Player p = e.getPlayer();
-        RegionGui.PendingInput in = plugin.gui().takeInput(p);
+        ChatMenu.Pending in = plugin.menus().takeInput(p);
         if (in == null) return;
         e.setCancelled(true);
-        String nick = PlainTextComponentSerializer.plainText().serialize(e.message()).trim();
-        Bukkit.getScheduler().runTask(plugin, () -> applyInput(p, in, nick));
+        String text = PlainTextComponentSerializer.plainText().serialize(e.message()).trim();
+        Bukkit.getScheduler().runTask(plugin, () -> applyInput(p, in, text));
     }
 
     @SuppressWarnings("deprecation")
-    private void applyInput(Player p, RegionGui.PendingInput in, String nick) {
-        if (nick.isEmpty()) {
+    private void applyInput(Player p, ChatMenu.Pending in, String text) {
+        if (text.isEmpty()) {
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Отменено."));
+            return;
+        }
+        if (in.kind() == ChatMenu.InputKind.CREATE_NAME) {
+            plugin.commands().createFromChat(p, text);
             return;
         }
         Region r = plugin.storage().get(in.region());
@@ -234,55 +120,52 @@ public class GuiListener implements Listener {
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец."));
             return;
         }
-        OfflinePlayer op = Bukkit.getOfflinePlayer(nick);
+        OfflinePlayer op = Bukkit.getOfflinePlayer(text);
         if (!op.hasPlayedBefore() && !op.isOnline()) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cИгрок &f" + nick + " &cне найден (ник с ошибкой?)."));
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cИгрок &f" + text + " &cне найден (ник с ошибкой?)."));
             return;
         }
         UUID uuid = op.getUniqueId();
-        String realName = op.getName() != null ? op.getName() : nick;
-        switch (in.kind()) {
-            case ADD_OWNER -> {
-                if (r.owners.containsKey(uuid)) {
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже владелец."));
-                } else {
-                    r.owners.put(uuid, realName);
-                    r.members.remove(uuid);
-                    plugin.storage().saveAsync();
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&a" + realName + " &7теперь владелец &f" + r.name));
-                }
+        String realName = op.getName() != null ? op.getName() : text;
+        if (in.kind() == ChatMenu.InputKind.ADD_OWNER) {
+            if (r.owners.containsKey(uuid)) {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже владелец."));
+            } else {
+                r.owners.put(uuid, realName);
+                r.members.remove(uuid);
+                plugin.storage().saveAsync();
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&a" + realName + " &7теперь владелец &f" + r.name));
             }
-            case DEL_OWNER -> {
-                if (uuid.equals(r.owner)) {
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&cСоздателя убрать нельзя. Удали регион целиком."));
-                } else if (r.owners.remove(uuid) != null) {
-                    plugin.storage().saveAsync();
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7больше не владелец."));
-                } else {
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Такого владельца нет."));
-                }
+        } else if (in.kind() == ChatMenu.InputKind.DEL_OWNER) {
+            if (uuid.equals(r.owner)) {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cСоздателя убрать нельзя."));
+            } else if (r.owners.remove(uuid) != null) {
+                plugin.storage().saveAsync();
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7больше не владелец."));
+            } else {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Такого владельца нет."));
             }
-            case ADD_MEMBER -> {
-                if (r.isOwner(uuid)) {
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже владелец."));
-                } else if (r.members.containsKey(uuid)) {
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже в списке."));
-                } else {
-                    r.members.put(uuid, realName);
-                    plugin.storage().saveAsync();
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&a" + realName + " &7добавлен в &f" + r.name));
-                }
+        } else if (in.kind() == ChatMenu.InputKind.DEL_MEMBER) {
+            if (r.members.remove(uuid) != null) {
+                plugin.storage().saveAsync();
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7убран из региона."));
+            } else {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Такого игрока нет."));
             }
-            case DEL_MEMBER -> {
-                if (r.members.remove(uuid) != null) {
-                    plugin.storage().saveAsync();
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7убран из региона."));
-                } else {
-                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Такого игрока нет."));
-                }
+        } else {
+            if (r.isOwner(uuid)) {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже владелец."));
+            } else if (r.members.containsKey(uuid)) {
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже в списке."));
+            } else {
+                r.members.put(uuid, realName);
+                plugin.storage().saveAsync();
+                p.sendMessage(Msg.color(plugin.cfg().prefix + "&a" + realName + " &7добавлен в &f" + r.name));
             }
         }
-        clickSound(p);
-        plugin.gui().openInfo(p, r);
+        if (plugin.cfg().sounds) {
+            p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
+        }
+        plugin.menus().regionMenu(p, r);
     }
 }
