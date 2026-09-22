@@ -90,6 +90,8 @@ public class ProtectListener implements Listener {
     }
 
     // ---------------- interact ----------------
+    // MECH (buttons, levers, doors, hatches, gates...): outsiders use them only if flag ON.
+    // LOCKED (chests, workstations...): owners/members only, always.
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent e) {
@@ -100,34 +102,18 @@ public class ProtectListener implements Listener {
         Player p = e.getPlayer();
         if (bypass(p)) return;
         Block b = e.getClickedBlock();
-        if (b == null || !isProtectedUse(b.getType())) return;
+        if (b == null) return;
+        com.vitalis.rg.util.Interact.Kind kind =
+                com.vitalis.rg.util.Interact.of(b.getType());
+        if (kind == com.vitalis.rg.util.Interact.Kind.OPEN) return;
         // wand handles its own clicks
         if (p.getInventory().getItemInMainHand().getType() == plugin.cfg().wand) return;
         Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
         if (r == null) return;
-        if (!r.canBuild(p.getUniqueId())) {
-            e.setCancelled(true);
-            deny(p, r);
-        }
-    }
-
-    /** Containers, doors, buttons, workstations... */
-    private boolean isProtectedUse(Material m) {
-        String n = m.name();
-        return n.contains("CHEST") || n.equals("BARREL") || n.equals("ENDER_CHEST")
-                || n.contains("FURNACE") || n.contains("DOOR") || n.contains("GATE")
-                || n.contains("BUTTON") || n.contains("LEVER") || n.contains("BED")
-                || n.equals("ANVIL") || n.equals("CHIPPED_ANVIL") || n.equals("DAMAGED_ANVIL")
-                || n.equals("ENCHANTING_TABLE") || n.equals("BREWING_STAND")
-                || n.equals("HOPPER") || n.equals("DROPPER") || n.equals("DISPENSER")
-                || n.equals("CRAFTER") || n.equals("JUKEBOX") || n.equals("LECTERN")
-                || n.equals("COMPOSTER") || n.equals("BELL") || n.equals("CAKE")
-                || n.equals("RESPAWN_ANCHOR") || n.equals("LODESTONE")
-                || n.contains("SHULKER_BOX") || n.equals("CRAFTING_TABLE")
-                || n.equals("CARTOGRAPHY_TABLE") || n.equals("FLETCHING_TABLE")
-                || n.equals("GRINDSTONE") || n.equals("LOOM") || n.equals("SMITHING_TABLE")
-                || n.equals("STONECUTTER") || n.equals("BEACON") || n.equals("DRAGON_EGG")
-                || n.contains("CANDLE") || n.contains("FLOWER_POT");
+        if (r.canBuild(p.getUniqueId())) return;
+        if (kind == com.vitalis.rg.util.Interact.Kind.MECH && r.mechanisms) return;
+        e.setCancelled(true);
+        deny(p, r);
     }
 
     // ---------------- trespass ----------------
@@ -263,6 +249,17 @@ public class ProtectListener implements Listener {
         }
         // lightning / lava / spread fire never starts inside a region
         if (e.getPlayer() == null) e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockBurn(org.bukkit.event.block.BlockBurnEvent e) {
+        // burning block itself destroyed by fire: forbidden while the flag is OFF
+        // (covers eternal fire / pre-lit blocks, not just new ignition)
+        Block b = e.getBlock();
+        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
+        if (r != null && !r.fireSpread) {
+            e.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
