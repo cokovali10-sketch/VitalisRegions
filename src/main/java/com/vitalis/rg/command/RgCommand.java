@@ -194,6 +194,48 @@ public class RgCommand implements CommandExecutor, TabCompleter {
 
     private void openAddDialog(Player p, Region r, boolean owner) {
         String what = owner ? "владельца" : "игрока";
+        // online players as one-click buttons + manual entry (covers offline too)
+        List<com.vitalis.rg.menu.DialogMenu.DialogMenuEntry> online = new ArrayList<>();
+        for (Player o : org.bukkit.Bukkit.getOnlinePlayers()) {
+            if (o.getUniqueId().equals(p.getUniqueId())) continue;
+            if (r.isOwner(o.getUniqueId()) || r.isMember(o.getUniqueId())) continue;
+            online.add(new com.vitalis.rg.menu.DialogMenu.DialogMenuEntry(
+                    o.getUniqueId().toString(), o.getName()));
+            if (online.size() >= 24) break;
+        }
+        if (!online.isEmpty()) {
+            try {
+                List<io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry> opts = new ArrayList<>();
+                opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
+                        .create("__type__", net.kyori.adventure.text.Component.text("Ввести ник вручную"), true));
+                for (com.vitalis.rg.menu.DialogMenu.DialogMenuEntry e : online) {
+                    opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
+                            .create(e.id(), net.kyori.adventure.text.Component.text(e.nick()), false));
+                }
+                com.vitalis.rg.menu.DialogMenu.select(plugin, p,
+                        Msg.color(plugin.menus().grad("Кого добавить · " + r.name)), opts,
+                        id -> {
+                            if (id.isEmpty()) {
+                                send(p, "&7Отменено.");
+                                return;
+                            }
+                            if (id.equals("__type__")) {
+                                openTypeDialog(p, r, owner);
+                                return;
+                            }
+                            applyAddUuid(p, r.name, id, owner);
+                        });
+                return;
+            } catch (Throwable t) {
+                // fall through to text input
+            }
+        }
+        openTypeDialog(p, r, owner);
+    }
+
+    /** Manual nick entry window (also covers offline players). */
+    private void openTypeDialog(Player p, Region r, boolean owner) {
+        String what = owner ? "владельца" : "игрока";
         try {
             com.vitalis.rg.menu.DialogMenu.textInput(plugin, p,
                     Msg.color(plugin.menus().grad((owner ? "Добавить владельца" : "Добавить игрока") + " · " + r.name)),
@@ -211,6 +253,44 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                     owner ? ChatMenu.InputKind.ADD_OWNER : ChatMenu.InputKind.ADD_MEMBER);
             scheduleInputTimeout(p);
         }
+    }
+
+    /** Shared add-by-UUID logic (online picker window). */
+    public void applyAddUuid(Player p, String region, String uuidStr, boolean owner) {
+        Region r = owned(p, region);
+        if (r == null) return;
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(uuidStr);
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        org.bukkit.OfflinePlayer op = org.bukkit.Bukkit.getOfflinePlayer(uuid);
+        String realName = op.getName() != null ? op.getName() : uuidStr;
+        if (owner) {
+            if (r.owners.containsKey(uuid)) {
+                send(p, "&e" + realName + " &7уже владелец.");
+            } else {
+                r.owners.put(uuid, realName);
+                r.members.remove(uuid);
+                plugin.storage().saveAsync();
+                send(p, "&a" + realName + " &7теперь владелец &f" + r.name);
+            }
+        } else {
+            if (r.isOwner(uuid)) {
+                send(p, "&e" + realName + " &7уже владелец.");
+            } else if (r.members.containsKey(uuid)) {
+                send(p, "&e" + realName + " &7уже в списке.");
+            } else {
+                r.members.put(uuid, realName);
+                plugin.storage().saveAsync();
+                send(p, "&a" + realName + " &7добавлен в &f" + r.name);
+            }
+        }
+        if (plugin.cfg().sounds) {
+            p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
+        }
+        plugin.menus().regionMenu(p, r);
     }
 
     private void openDelDialog(Player p, Region r, boolean owner) {
