@@ -120,16 +120,14 @@ public class ChatMenu {
             send(p, "&cРегионов нет. &7Создай первый кнопкой ниже.");
         }
         for (Region r : mine) {
-            String role = r.isOwner(p.getUniqueId()) ? "<green>◆ владелец" : "<aqua>◆ игрок";
+            String role = r.isOwner(p.getUniqueId()) ? "<gold>★" : "<aqua>●";
             Component hover = Msg.color("<gray>" + r.world + " " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
                     + "\nВладелец: " + r.ownerName
                     + "\nИгроков: " + r.members.size()
-                    + "\nОгонь/PVP/взрывы: " + (r.fireSpread ? "да" : "нет") + "/" + (r.pvp ? "да" : "нет") + "/" + (r.explosions ? "да" : "нет"));
+                    + "\nОгонь/взрывы: " + (r.fireSpread ? "да" : "нет") + "/" + (r.explosions ? "да" : "нет"));
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + r.name + " " + role + " ")
                     .hoverEvent(HoverEvent.showText(hover))
-                    .append(btn("настроить", NamedTextColor.GREEN, "/area sel " + r.name, "Открыть настройки"))
-                    .append(Component.text(" "))
-                    .append(btn("тп", NamedTextColor.AQUA, "/area tp " + r.name, "Телепорт в регион")));
+                    .append(btn("настроить", NamedTextColor.GREEN, "/area sel " + r.name, "Открыть настройки")));
         }
         // selection row
         var sel = plugin.selections().get(p.getUniqueId());
@@ -164,21 +162,23 @@ public class ChatMenu {
         frameTop(p, "Регион " + r.name);
         send(p, "<gray>" + r.world + " · " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
                 + " · владелец " + r.ownerName);
-        // owners: names, then [+] [−] (nick typed in chat)
+        // owners: ★ names, then [+] [-] — hover explains, colors differ from members
         var oLine = Component.text();
-        oLine.append(Component.text("Владельцы: ").color(NamedTextColor.GOLD));
+        oLine.append(Component.text("★ ").color(NamedTextColor.GOLD)
+                .hoverEvent(HoverEvent.showText(Component.text("Владельцы: всё можно"))));
         for (Map.Entry<UUID, String> e : r.owners.entrySet()) {
-            oLine.append(Component.text(e.getValue() + " ").color(NamedTextColor.WHITE));
+            oLine.append(Component.text(e.getValue() + " ").color(NamedTextColor.YELLOW));
         }
         if (owner) {
-            oLine.append(btn("+", NamedTextColor.GREEN, "/area ownadd " + r.name, "Добавить: ник в чат"))
+            oLine.append(btn("+", NamedTextColor.GREEN, "/area ownadd " + r.name, "Добавить: ник в окно"))
                     .append(Component.text(" "))
-                    .append(btn("−", NamedTextColor.RED, "/area owndel " + r.name, "Убрать: ник в чат"));
+                    .append(btn("-", NamedTextColor.RED, "/area owndel " + r.name, "Убрать: выбор из списка"));
         }
         p.sendMessage(oLine.build());
-        // members: names, then [+] [−]
+        // members: ● names, then [+] [-]
         var mLine = Component.text();
-        mLine.append(Component.text("Игроки: ").color(NamedTextColor.AQUA));
+        mLine.append(Component.text("● ").color(NamedTextColor.AQUA)
+                .hoverEvent(HoverEvent.showText(Component.text("Игроки: всё можно, настраивать нельзя"))));
         if (r.members.isEmpty()) mLine.append(Component.text("— ").color(NamedTextColor.GRAY));
         int shown = 0;
         for (Map.Entry<UUID, String> e : r.members.entrySet()) {
@@ -189,31 +189,28 @@ public class ChatMenu {
             mLine.append(Component.text(e.getValue() + " ").color(NamedTextColor.WHITE));
         }
         if (owner) {
-            mLine.append(btn("+", NamedTextColor.GREEN, "/area memadd " + r.name, "Добавить: ник в чат"))
+            mLine.append(btn("+", NamedTextColor.GREEN, "/area memadd " + r.name, "Добавить: ник в окно"))
                     .append(Component.text(" "))
-                    .append(btn("−", NamedTextColor.RED, "/area memdel " + r.name, "Убрать: ник в чат"));
+                    .append(btn("-", NamedTextColor.RED, "/area memdel " + r.name, "Убрать: выбор из списка"));
         }
         p.sendMessage(mLine.build());
-        // flags (owners clickable, members see state)
+        // flags: ◆ + green/red states (owners clickable, members see state)
         var fLine = Component.text();
-        fLine.append(Component.text("Флаги: ").color(NamedTextColor.GRAY));
+        fLine.append(Component.text("◆ ").color(NamedTextColor.GRAY)
+                .hoverEvent(HoverEvent.showText(Component.text("Флаги — только для чужих. Своим можно всё"))));
         fLine.append(flagBtn("Огонь", r.fireSpread, owner ? "/area tgl " + r.name + " fire" : null)).append(Component.text(" "));
-        fLine.append(flagBtn("PVP", r.pvp, owner ? "/area tgl " + r.name + " pvp" : null)).append(Component.text(" "));
         fLine.append(flagBtn("Взрывы", r.explosions, owner ? "/area tgl " + r.name + " expl" : null)).append(Component.text(" "));
         fLine.append(flagBtn("Механизмы", r.mechanisms, owner ? "/area tgl " + r.name + " mech" : null)).append(Component.text(" "));
         fLine.append(flagBtn("Хомы", r.homes, owner ? "/area tgl " + r.name + " homes" : null));
         p.sendMessage(fLine.build());
         // actions
-        var aLine = Component.text();
-        if (member || owner) {
-            aLine.append(btn("Телепорт", NamedTextColor.AQUA, "/area tp " + r.name, "В центр региона")).append(Component.text(" "));
-        }
         if (owner) {
+            var aLine = Component.text();
             aLine.append(btn("Высота", NamedTextColor.GOLD, "/area vert " + r.name, "Растянуть от bedrock до неба")).append(Component.text(" "));
-            aLine.append(btn("Переименовать", NamedTextColor.YELLOW, "/area ren " + r.name, "Новое название в чат")).append(Component.text(" "));
+            aLine.append(btn("Переименовать", NamedTextColor.YELLOW, "/area ren " + r.name, "Новое название в окно")).append(Component.text(" "));
             aLine.append(btn("Удалить", NamedTextColor.RED, "/area del " + r.name, "Удаление с подтверждением"));
+            p.sendMessage(aLine.build());
         }
-        p.sendMessage(aLine.build());
         frameBottom(p);
     }
 

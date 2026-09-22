@@ -6,21 +6,19 @@ import com.vitalis.rg.util.Msg;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
-/** Region protection: build, containers, buckets, pvp, explosions. */
+/** Region protection: build, containers, buckets, explosions, nature, trespass. PvP is vanilla (no flag). */
 public class ProtectListener implements Listener {
     private final Regions plugin;
 
@@ -223,28 +221,6 @@ public class ProtectListener implements Listener {
         }
     }
 
-    // ---------------- pvp ----------------
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onPvp(EntityDamageByEntityEvent e) {
-        if (!(e.getEntity() instanceof Player victim)) return;
-        Player attacker = null;
-        if (e.getDamager() instanceof Player p) {
-            attacker = p;
-        } else if (e.getDamager() instanceof Projectile pr && pr.getShooter() instanceof Player p) {
-            attacker = p;
-        }
-        if (attacker == null) return;
-        if (attacker.getUniqueId().equals(victim.getUniqueId())) return;
-        Region r = plugin.storage().at(victim.getWorld().getName(),
-                victim.getLocation().getBlockX(), victim.getLocation().getBlockY(), victim.getLocation().getBlockZ());
-        if (r == null) return;
-        if (!r.pvp) {
-            e.setCancelled(true);
-            attacker.sendMessage(Msg.color(plugin.cfg().prefix + "&cPVP выключено в регионе &f" + r.name));
-        }
-    }
-
     // ---------------- explosions ----------------
     // Full cancel: no crater AND no entity damage (otherwise creepers still hurt through the flag)
 
@@ -348,25 +324,9 @@ public class ProtectListener implements Listener {
     }
 
     // ---------------- mechanisms flag ----------------
-    // OFF = redstone frozen + dispensers silent. Pistons stay always guarded (see above).
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onRedstone(org.bukkit.event.block.BlockRedstoneEvent e) {
-        Block b = e.getBlock();
-        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
-        if (r != null && !r.mechanisms) {
-            e.setNewCurrent(0);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onDispense(org.bukkit.event.block.BlockDispenseEvent e) {
-        Block b = e.getBlock();
-        Region r = plugin.storage().at(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
-        if (r != null && !r.mechanisms) {
-            e.setCancelled(true);
-        }
-    }
+    // Rule: owners/members can ALWAYS use everything (buttons, redstone, dispensers).
+    // The flag only decides whether OUTSIDERS may press buttons/levers/doors (see onInteract).
+    // No global redstone freeze: members' contraptions keep working no matter the flag.
 
     // ---------------- homes flag ----------------
     // OFF = outsiders cannot /sethome here (Essentials + aliases).

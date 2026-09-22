@@ -98,10 +98,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 if (args.length < 3) return true;
                 toggleFlag(p, args[1], args[2]);
             }
-            case "tp" -> {
-                if (args.length < 2) return true;
-                teleport(plugin, p, args[1]);
-            }
+
             case "del" -> {
                 if (args.length < 2) return true;
                 deleteMenu(p, args[1]);
@@ -359,40 +356,13 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         send(p, "&71. Встань в один угол, введи &e/area pos1");
         send(p, "&72. Встань в другой угол, введи &e/area pos2");
         send(p, "&73. Введи &e/area &7и выбери &6[На всю высоту] &7или &a[Как выделил]");
-        send(p, "&7Владельцев и игроков добавляют кнопки &a[+] &7и &c[−] &7— ник пишется в чат.");
+        send(p, "&7Владельцев и игроков добавляют кнопки &a[+] &7и &c[-] &7— ник пишется в чат.");
         send(p, "&7Удалить регион: &e/area remove <название>");
     }
 
     private String xyz(Location l) {
         return l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ()
                 + " (" + l.getWorld().getName() + ")";
-    }
-
-    /** Teleport to region center top (members/owners only). Shared with chat buttons. */
-    public static void teleport(Regions plugin, Player p, String name) {
-        Region r = plugin.storage().get(name);
-        if (r == null) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cРегиона &f" + name + " &cнет."));
-            return;
-        }
-        if (!r.canBuild(p.getUniqueId()) && !Perms.has(p, "bypass")) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владельцы и участники."));
-            return;
-        }
-        org.bukkit.World w = org.bukkit.Bukkit.getWorld(r.world);
-        if (w == null) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cМир &f" + r.world + " &cне загружен."));
-            return;
-        }
-        int x = (r.minX + r.maxX) / 2;
-        int z = (r.minZ + r.maxZ) / 2;
-        int y = w.getHighestBlockYAt(x, z) + 1;
-        if (y <= w.getMinHeight()) y = Math.min(r.maxY + 1, w.getMaxHeight() - 1);
-        p.teleport(new Location(w, x + 0.5, y, z + 0.5));
-        p.sendMessage(Msg.color(plugin.cfg().prefix + "&aТелепорт в &f" + r.name));
-        if (plugin.cfg().sounds) {
-            p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1f);
-        }
     }
 
     // ---------------- public: remove ----------------
@@ -567,7 +537,6 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         String label;
         switch (flag.toLowerCase(Locale.ROOT)) {
             case "fire" -> { r.fireSpread = !r.fireSpread; label = "Огонь"; }
-            case "pvp" -> { r.pvp = !r.pvp; label = "PVP"; }
             case "expl" -> { r.explosions = !r.explosions; label = "Взрывы"; }
             case "mech" -> { r.mechanisms = !r.mechanisms; label = "Механизмы"; }
             case "homes" -> { r.homes = !r.homes; label = "Хомы"; }
@@ -579,7 +548,6 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         }
         plugin.menus().regionMenu(p, r);
         boolean on = flag.equalsIgnoreCase("fire") ? r.fireSpread
-                : flag.equalsIgnoreCase("pvp") ? r.pvp
                 : flag.equalsIgnoreCase("expl") ? r.explosions
                 : flag.equalsIgnoreCase("mech") ? r.mechanisms : r.homes;
         send(p, "&7" + label + ": " + (on ? "&aВКЛ" : "&cВЫКЛ"));
