@@ -8,7 +8,6 @@ import com.vitalis.rg.util.Msg;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,8 +18,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-
-import java.util.UUID;
 
 /** Wand selection, chat nick/name input, nickname refresh. No GUI windows. */
 public class GuiListener implements Listener {
@@ -119,88 +116,19 @@ public class GuiListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> applyInput(p, in, text));
     }
 
-    @SuppressWarnings("deprecation")
+    /** Chat fallback (when dialog windows are unavailable): same shared logic. */
     private void applyInput(Player p, ChatMenu.Pending in, String text) {
         if (text.isEmpty()) {
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Отменено."));
             return;
         }
-        if (in.kind() == ChatMenu.InputKind.CREATE_NAME) {
-            plugin.commands().createFromChat(p, text, in.vert());
-            return;
+        switch (in.kind()) {
+            case CREATE_NAME -> plugin.commands().createFromChat(p, text, in.vert());
+            case RENAME -> plugin.commands().applyRename(p, in.region(), text);
+            case ADD_OWNER -> plugin.commands().applyAdd(p, in.region(), text, true);
+            case ADD_MEMBER -> plugin.commands().applyAdd(p, in.region(), text, false);
+            case DEL_OWNER -> plugin.commands().applyDelNick(p, in.region(), text, true);
+            case DEL_MEMBER -> plugin.commands().applyDelNick(p, in.region(), text, false);
         }
-        if (in.kind() == ChatMenu.InputKind.RENAME) {
-            Region r = plugin.storage().get(in.region());
-            if (r == null || !r.isOwner(p.getUniqueId())) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец."));
-                return;
-            }
-            String old = r.name;
-            if (plugin.storage().rename(old, text)) {
-                plugin.storage().saveAsync();
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&aРегион &f" + old + " &aтеперь &f" + text));
-                Region updated = plugin.storage().get(text);
-                if (updated != null) plugin.menus().regionMenu(p, updated);
-            } else {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cПлохо: имя занято или не подходит (латиница 3-16)."));
-            }
-            return;
-        }
-        Region r = plugin.storage().get(in.region());
-        if (r == null) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cРегион уже удалён."));
-            return;
-        }
-        if (!r.isOwner(p.getUniqueId())) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cТолько владелец."));
-            return;
-        }
-        OfflinePlayer op = Bukkit.getOfflinePlayer(text);
-        if (!op.hasPlayedBefore() && !op.isOnline()) {
-            p.sendMessage(Msg.color(plugin.cfg().prefix + "&cИгрок &f" + text + " &cне найден (ник с ошибкой?)."));
-            return;
-        }
-        UUID uuid = op.getUniqueId();
-        String realName = op.getName() != null ? op.getName() : text;
-        if (in.kind() == ChatMenu.InputKind.ADD_OWNER) {
-            if (r.owners.containsKey(uuid)) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже владелец."));
-            } else {
-                r.owners.put(uuid, realName);
-                r.members.remove(uuid);
-                plugin.storage().saveAsync();
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&a" + realName + " &7теперь владелец &f" + r.name));
-            }
-        } else if (in.kind() == ChatMenu.InputKind.DEL_OWNER) {
-            if (uuid.equals(r.owner)) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&cСоздателя убрать нельзя."));
-            } else if (r.owners.remove(uuid) != null) {
-                plugin.storage().saveAsync();
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7больше не владелец."));
-            } else {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Такого владельца нет."));
-            }
-        } else if (in.kind() == ChatMenu.InputKind.DEL_MEMBER) {
-            if (r.members.remove(uuid) != null) {
-                plugin.storage().saveAsync();
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7убран из региона."));
-            } else {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Такого игрока нет."));
-            }
-        } else {
-            if (r.isOwner(uuid)) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже владелец."));
-            } else if (r.members.containsKey(uuid)) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&e" + realName + " &7уже в списке."));
-            } else {
-                r.members.put(uuid, realName);
-                plugin.storage().saveAsync();
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&a" + realName + " &7добавлен в &f" + r.name));
-            }
-        }
-        if (plugin.cfg().sounds) {
-            p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
-        }
-        plugin.menus().regionMenu(p, r);
     }
 }

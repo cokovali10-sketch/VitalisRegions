@@ -120,36 +120,36 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             }
             case "ren" -> {
                 if (args.length < 2) return true;
-                Region r = plugin.storage().get(args[1]);
-                if (r == null || !r.isOwner(p.getUniqueId())) {
-                    send(p, "&cТолько владелец.");
-                    return true;
+                Region r = owned(p, args[1]);
+                if (r == null) return true;
+                try {
+                    com.vitalis.rg.menu.DialogMenu.textInput(plugin, p,
+                            Msg.color(plugin.menus().grad("Переименовать " + r.name)),
+                            "Новое название (латиница 3-16):",
+                            text -> applyRename(p, r.name, text));
+                } catch (Throwable t) {
+                    p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи новое название в чат &7(латиница 3-16, пустое = отмена, 30 сек):"));
+                    plugin.menus().markInput(p, r.name, ChatMenu.InputKind.RENAME);
+                    scheduleInputTimeout(p);
                 }
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи новое название в чат &7(латиница 3-16, пустое = отмена, 30 сек):"));
-                plugin.menus().markInput(p, r.name, ChatMenu.InputKind.RENAME);
-                scheduleInputTimeout(p);
             }
             case "owndel" -> {
                 if (args.length < 2) return true;
-                askNick(p, args[1], true);
+                Region r = owned(p, args[1]);
+                if (r == null) return true;
+                openDelDialog(p, r, true);
             }
             case "memdel" -> {
                 if (args.length < 2) return true;
-                askNick(p, args[1], false);
+                Region r = owned(p, args[1]);
+                if (r == null) return true;
+                openDelDialog(p, r, false);
             }
             case "ownadd", "memadd" -> {
                 if (args.length < 2) return true;
-                Region r = plugin.storage().get(args[1]);
-                if (r == null || !r.isOwner(p.getUniqueId())) {
-                    send(p, "&cТолько владелец.");
-                    return true;
-                }
-                boolean owner = sub.equals("ownadd");
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи ник "
-                        + (owner ? "владельца" : "игрока") + " в чат &7(пустое = отмена, 30 сек):"));
-                plugin.menus().markInput(p, r.name,
-                        owner ? ChatMenu.InputKind.ADD_OWNER : ChatMenu.InputKind.ADD_MEMBER);
-                scheduleInputTimeout(p);
+                Region r = owned(p, args[1]);
+                if (r == null) return true;
+                openAddDialog(p, r, sub.equals("ownadd"));
             }
             case "gwand" -> giveWand(p);
             case "reload" -> {
@@ -171,6 +171,182 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Ввод отменён (таймаут)."));
             }
         }, 30L * 20L);
+    }
+
+    /** Region by name if viewer is its owner, else a message + null. */
+    private Region owned(Player p, String name) {
+        Region r = plugin.storage().get(name);
+        if (r == null) {
+            send(p, "&cРегиона нет.");
+            return null;
+        }
+        if (!r.isOwner(p.getUniqueId())) {
+            send(p, "&cТолько владелец.");
+            return null;
+        }
+        return r;
+    }
+
+    // ---------------- dialog windows (+ chat fallback) ----------------
+
+    private void openAddDialog(Player p, Region r, boolean owner) {
+        String what = owner ? "владельца" : "игрока";
+        try {
+            com.vitalis.rg.menu.DialogMenu.textInput(plugin, p,
+                    Msg.color(plugin.menus().grad((owner ? "Добавить владельца" : "Добавить игрока") + " · " + r.name)),
+                    "Ник " + what + ":",
+                    text -> {
+                        if (text.isEmpty()) {
+                            send(p, "&7Отменено.");
+                            return;
+                        }
+                        applyAdd(p, r.name, text, owner);
+                    });
+        } catch (Throwable t) {
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи ник " + what + " в чат &7(пустое = отмена, 30 сек):"));
+            plugin.menus().markInput(p, r.name,
+                    owner ? ChatMenu.InputKind.ADD_OWNER : ChatMenu.InputKind.ADD_MEMBER);
+            scheduleInputTimeout(p);
+        }
+    }
+
+    private void openDelDialog(Player p, Region r, boolean owner) {
+        Map<UUID, String> map = owner ? r.owners : r.members;
+        List<com.vitalis.rg.menu.DialogMenu.DialogMenuEntry> entries = new ArrayList<>();
+        for (Map.Entry<UUID, String> e : map.entrySet()) {
+            if (owner && e.getKey().equals(r.owner)) continue; // creator stays
+            entries.add(new com.vitalis.rg.menu.DialogMenu.DialogMenuEntry(e.getKey().toString(), e.getValue()));
+        }
+        if (entries.isEmpty()) {
+            send(p, owner ? "&7Других владельцев нет." : "&7Список игроков пуст.");
+            return;
+        }
+        try {
+            List<io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry> opts = new ArrayList<>();
+            for (com.vitalis.rg.menu.DialogMenu.DialogMenuEntry e : entries) {
+                opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
+                        .create(e.id(), net.kyori.adventure.text.Component.text(e.nick()), false));
+            }
+            com.vitalis.rg.menu.DialogMenu.select(plugin, p,
+                    Msg.color(plugin.menus().grad("Кого убрать · " + r.name)), opts,
+                    id -> {
+                        if (id.isEmpty()) {
+                            send(p, "&7Отменено.");
+                            return;
+                        }
+                        applyDelUuid(p, r.name, id, owner);
+                    });
+        } catch (Throwable t) {
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи ник для удаления в чат &7(пустое = отмена, 30 сек):"));
+            plugin.menus().markInput(p, r.name,
+                    owner ? ChatMenu.InputKind.DEL_OWNER : ChatMenu.InputKind.DEL_MEMBER);
+            scheduleInputTimeout(p);
+        }
+    }
+
+    /** Shared add logic: dialog submit + chat fallback. */
+    public void applyAdd(Player p, String region, String nick, boolean owner) {
+        Region r = owned(p, region);
+        if (r == null) return;
+        org.bukkit.OfflinePlayer op = org.bukkit.Bukkit.getOfflinePlayer(nick);
+        if (!op.hasPlayedBefore() && !op.isOnline()) {
+            send(p, "&cИгрок &f" + nick + " &cне найден (ник с ошибкой?).");
+            return;
+        }
+        UUID uuid = op.getUniqueId();
+        String realName = op.getName() != null ? op.getName() : nick;
+        if (owner) {
+            if (r.owners.containsKey(uuid)) {
+                send(p, "&e" + realName + " &7уже владелец.");
+            } else {
+                r.owners.put(uuid, realName);
+                r.members.remove(uuid);
+                plugin.storage().saveAsync();
+                send(p, "&a" + realName + " &7теперь владелец &f" + r.name);
+            }
+        } else {
+            if (r.isOwner(uuid)) {
+                send(p, "&e" + realName + " &7уже владелец.");
+            } else if (r.members.containsKey(uuid)) {
+                send(p, "&e" + realName + " &7уже в списке.");
+            } else {
+                r.members.put(uuid, realName);
+                plugin.storage().saveAsync();
+                send(p, "&a" + realName + " &7добавлен в &f" + r.name);
+            }
+        }
+        if (plugin.cfg().sounds) {
+            p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.7f, 1f);
+        }
+        plugin.menus().regionMenu(p, r);
+    }
+
+    /** Shared delete-by-UUID logic (picker window). */
+    @SuppressWarnings("deprecation")
+    public void applyDelUuid(Player p, String region, String uuidStr, boolean owner) {
+        Region r = owned(p, region);
+        if (r == null) return;
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(uuidStr);
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        if (owner) {
+            if (r.owners.remove(uuid) != null) {
+                plugin.storage().saveAsync();
+                send(p, "&eИгрок &7больше не владелец.");
+            }
+        } else {
+            if (r.members.remove(uuid) != null) {
+                plugin.storage().saveAsync();
+                send(p, "&eИгрок &7убран из региона.");
+            }
+        }
+        plugin.menus().regionMenu(p, r);
+    }
+
+    /** Shared delete-by-nick logic (chat fallback). */
+    @SuppressWarnings("deprecation")
+    public void applyDelNick(Player p, String region, String nick, boolean owner) {
+        Region r = owned(p, region);
+        if (r == null) return;
+        org.bukkit.OfflinePlayer op = org.bukkit.Bukkit.getOfflinePlayer(nick);
+        UUID uuid = op.getUniqueId();
+        if (owner) {
+            if (uuid.equals(r.owner)) {
+                send(p, "&cСоздателя убрать нельзя.");
+                return;
+            }
+            if (r.owners.remove(uuid) != null) {
+                plugin.storage().saveAsync();
+                send(p, "&e" + nick + " &7больше не владелец.");
+            } else {
+                send(p, "&7Такого владельца нет.");
+            }
+        } else {
+            if (r.members.remove(uuid) != null) {
+                plugin.storage().saveAsync();
+                send(p, "&e" + nick + " &7убран из региона.");
+            } else {
+                send(p, "&7Такого игрока нет.");
+            }
+        }
+        plugin.menus().regionMenu(p, r);
+    }
+
+    /** Shared rename logic (dialog + chat fallback). */
+    public void applyRename(Player p, String old, String text) {
+        Region r = owned(p, old);
+        if (r == null) return;
+        if (plugin.storage().rename(old, text)) {
+            plugin.storage().saveAsync();
+            send(p, "&aРегион &f" + old + " &aтеперь &f" + text);
+            Region updated = plugin.storage().get(text);
+            if (updated != null) plugin.menus().regionMenu(p, updated);
+        } else {
+            send(p, "&cПлохо: имя занято или не подходит (латиница 3-16).");
+        }
     }
 
     /** Super simple help: 3 commands + buttons do the rest. */
@@ -257,11 +433,24 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             send(p, "&cНет доступа.");
             return;
         }
-        p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи название региона в чат "
-                + (vert ? "&6(на всю высоту) " : "")
-                + "&7(латиница 3-16, пустое = отмена, 30 сек):"));
-        plugin.menus().markInput(p, "", ChatMenu.InputKind.CREATE_NAME, vert);
-        scheduleInputTimeout(p);
+        try {
+            com.vitalis.rg.menu.DialogMenu.textInput(plugin, p,
+                    Msg.color(plugin.menus().grad("Новый регион" + (vert ? " · на всю высоту" : ""))),
+                    "Название (латиница 3-16):",
+                    text -> {
+                        if (text.isEmpty()) {
+                            send(p, "&7Отменено.");
+                            return;
+                        }
+                        createFromChat(p, text, vert);
+                    });
+        } catch (Throwable t) {
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи название региона в чат "
+                    + (vert ? "&6(на всю высоту) " : "")
+                    + "&7(латиница 3-16, пустое = отмена, 30 сек):"));
+            plugin.menus().markInput(p, "", ChatMenu.InputKind.CREATE_NAME, vert);
+            scheduleInputTimeout(p);
+        }
     }
 
     /** Called from chat input with the typed name. */
@@ -383,18 +572,6 @@ public class RgCommand implements CommandExecutor, TabCompleter {
     }
 
     /** Minus button: ask nick in chat, removal happens on reply. */
-    private void askNick(Player p, String region, boolean owner) {
-        Region r = plugin.storage().get(region);
-        if (r == null || !r.isOwner(p.getUniqueId())) {
-            send(p, "&cТолько владелец.");
-            return;
-        }
-        p.sendMessage(Msg.color(plugin.cfg().prefix + "&eВведи ник для удаления в чат &7(пустое = отмена, 30 сек):"));
-        plugin.menus().markInput(p, r.name,
-                owner ? ChatMenu.InputKind.DEL_OWNER : ChatMenu.InputKind.DEL_MEMBER);
-        scheduleInputTimeout(p);
-    }
-
     private void deleteMenu(Player p, String name) {
         Region r = plugin.storage().get(name);
         if (r == null || !r.isOwner(p.getUniqueId())) {
