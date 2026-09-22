@@ -23,8 +23,6 @@ public class ChatMenu {
 
     private final Regions plugin;
     private final Map<UUID, Pending> inputs = new HashMap<>();
-    /** "uuid:region" -> delete confirm deadline */
-    private final Map<String, Long> delConfirm = new HashMap<>();
 
     public ChatMenu(Regions plugin) {
         this.plugin = plugin;
@@ -44,19 +42,6 @@ public class ChatMenu {
 
     public void cancelInput(Player p) {
         inputs.remove(p.getUniqueId());
-    }
-
-    /** Two-step delete inside chat menu. */
-    public boolean confirmDelete(Player p, String region, long windowMs) {
-        String key = p.getUniqueId() + ":" + region.toLowerCase(Locale.ROOT);
-        long now = System.currentTimeMillis();
-        Long until = delConfirm.get(key);
-        if (until != null && until > now) {
-            delConfirm.remove(key);
-            return true;
-        }
-        delConfirm.put(key, now + windowMs);
-        return false;
     }
 
     // ---------------- style ----------------
@@ -82,14 +67,6 @@ public class ChatMenu {
         return Component.text("[" + text + "]")
                 .color(color)
                 .clickEvent(ClickEvent.runCommand(command))
-                .hoverEvent(HoverEvent.showText(Component.text(hover)));
-    }
-
-    /** Button that inserts text into chat instead of running. */
-    public static Component insertBtn(String text, NamedTextColor color, String toInsert, String hover) {
-        return Component.text("[" + text + "]")
-                .color(color)
-                .clickEvent(ClickEvent.suggestCommand(toInsert))
                 .hoverEvent(HoverEvent.showText(Component.text(hover)));
     }
 

@@ -64,13 +64,15 @@ public class GuiListener implements Listener {
         plugin.menus().cancelInput(e.getPlayer());
     }
 
-    /** Heaven touch: actionbar title when walking into your region (block-cross only, cheap). */
+    /** Heaven touch: actionbar title when walking into a region (block-cross only, cheap). */
     @EventHandler
     public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
         if (!plugin.cfg().enterTitle) return;
+        if (e.getTo() == null) return;
         if (e.getFrom().getBlockX() == e.getTo().getBlockX()
                 && e.getFrom().getBlockY() == e.getTo().getBlockY()
                 && e.getFrom().getBlockZ() == e.getTo().getBlockZ()) return;
+        if (e.getFrom().getWorld() == null || e.getTo().getWorld() == null) return;
         if (!e.getFrom().getWorld().equals(e.getTo().getWorld())) return;
         Player p = e.getPlayer();
         Region from = plugin.storage().at(e.getFrom().getWorld().getName(),
@@ -78,8 +80,11 @@ public class GuiListener implements Listener {
         Region to = plugin.storage().at(e.getTo().getWorld().getName(),
                 e.getTo().getBlockX(), e.getTo().getBlockY(), e.getTo().getBlockZ());
         if (to == null || (from != null && from.name.equalsIgnoreCase(to.name))) return;
-        if (!to.isOwner(p.getUniqueId()) && !to.isMember(p.getUniqueId())) return;
-        p.sendActionBar(Msg.color(plugin.menus().grad("◆ " + to.name + " ◆")));
+        if (to.isOwner(p.getUniqueId()) || to.isMember(p.getUniqueId())) {
+            p.sendActionBar(Msg.color(plugin.menus().grad("◆ " + to.name + " ◆")));
+        } else {
+            p.sendActionBar(Msg.color("<red>Чужой регион"));
+        }
     }
 
     /** Nicknames change — refresh stored display names on join (keys stay UUID). */
