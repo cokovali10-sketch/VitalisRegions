@@ -193,35 +193,30 @@ public class RgCommand implements CommandExecutor, TabCompleter {
     // ---------------- dialog windows (+ chat fallback) ----------------
 
     private void openAddDialog(Player p, Region r, boolean owner) {
-        // step 1: type first letters -> step 2: buttons with matching online nicks
-        try {
-            com.vitalis.rg.menu.DialogMenu.textInput(plugin, p,
-                    Msg.color(plugin.menus().grad((owner ? "Добавить владельца" : "Добавить игрока") + " · " + r.name)),
-                    "Первые буквы ника:",
-                    text -> {
-                        if (text.isEmpty()) {
-                            send(p, "&7Отменено.");
-                            return;
-                        }
-                        openMatchDialog(p, r, owner, text);
-                    });
-        } catch (Throwable t) {
-            openTypeDialog(p, r, owner);
-        }
+        // straight to the online list (empty filter = everyone); refine narrows it down
+        openMatchDialog(p, r, owner, "");
     }
 
-    /** Step 2: online nicks starting with the typed letters as one-click buttons. */
+    /** Online nicks as one-click buttons: prefix matches first, then any occurrence. */
     private void openMatchDialog(Player p, Region r, boolean owner, String prefix) {
         String q = prefix.toLowerCase(Locale.ROOT);
-        List<com.vitalis.rg.menu.DialogMenu.DialogMenuEntry> matched = new ArrayList<>();
+        List<com.vitalis.rg.menu.DialogMenu.DialogMenuEntry> starts = new ArrayList<>();
+        List<com.vitalis.rg.menu.DialogMenu.DialogMenuEntry> contains = new ArrayList<>();
         for (Player o : org.bukkit.Bukkit.getOnlinePlayers()) {
             if (o.getUniqueId().equals(p.getUniqueId())) continue;
             if (r.isOwner(o.getUniqueId()) || r.isMember(o.getUniqueId())) continue;
-            if (!o.getName().toLowerCase(Locale.ROOT).startsWith(q)) continue;
-            matched.add(new com.vitalis.rg.menu.DialogMenu.DialogMenuEntry(
-                    o.getUniqueId().toString(), o.getName()));
-            if (matched.size() >= 24) break;
+            String low = o.getName().toLowerCase(Locale.ROOT);
+            com.vitalis.rg.menu.DialogMenu.DialogMenuEntry e =
+                    new com.vitalis.rg.menu.DialogMenu.DialogMenuEntry(
+                            o.getUniqueId().toString(), o.getName());
+            if (low.startsWith(q)) {
+                if (starts.size() < 24) starts.add(e);
+            } else if (!q.isEmpty() && low.contains(q)) {
+                if (starts.size() + contains.size() < 24) contains.add(e);
+            }
         }
+        List<com.vitalis.rg.menu.DialogMenu.DialogMenuEntry> matched = new ArrayList<>(starts);
+        matched.addAll(contains);
         if (matched.isEmpty()) {
             // nobody online matches: full manual entry (covers offline players)
             openTypeDialog(p, r, owner);
@@ -237,8 +232,11 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
                         .create(e.id(), net.kyori.adventure.text.Component.text(e.nick()), false));
             }
+            String listTitle = prefix.isEmpty()
+                    ? "Кто онлайн · " + r.name
+                    : "«" + prefix + "» · найдено " + matched.size() + " · " + r.name;
             com.vitalis.rg.menu.DialogMenu.select(plugin, p,
-                    Msg.color(plugin.menus().grad("«" + prefix + "» · найдено " + matched.size() + " · " + r.name)), opts,
+                    Msg.color(plugin.menus().grad(listTitle)), opts,
                     id -> {
                         if (id.isEmpty()) {
                             send(p, "&7Отменено.");
