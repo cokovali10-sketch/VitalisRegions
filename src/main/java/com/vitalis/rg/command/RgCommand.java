@@ -193,44 +193,64 @@ public class RgCommand implements CommandExecutor, TabCompleter {
     // ---------------- dialog windows (+ chat fallback) ----------------
 
     private void openAddDialog(Player p, Region r, boolean owner) {
-        String what = owner ? "владельца" : "игрока";
-        // online players as one-click buttons + manual entry (covers offline too)
-        List<com.vitalis.rg.menu.DialogMenu.DialogMenuEntry> online = new ArrayList<>();
+        // step 1: type first letters -> step 2: buttons with matching online nicks
+        try {
+            com.vitalis.rg.menu.DialogMenu.textInput(plugin, p,
+                    Msg.color(plugin.menus().grad((owner ? "Добавить владельца" : "Добавить игрока") + " · " + r.name)),
+                    "Первые буквы ника:",
+                    text -> {
+                        if (text.isEmpty()) {
+                            send(p, "&7Отменено.");
+                            return;
+                        }
+                        openMatchDialog(p, r, owner, text);
+                    });
+        } catch (Throwable t) {
+            openTypeDialog(p, r, owner);
+        }
+    }
+
+    /** Step 2: online nicks starting with the typed letters as one-click buttons. */
+    private void openMatchDialog(Player p, Region r, boolean owner, String prefix) {
+        String q = prefix.toLowerCase(Locale.ROOT);
+        List<com.vitalis.rg.menu.DialogMenu.DialogMenuEntry> matched = new ArrayList<>();
         for (Player o : org.bukkit.Bukkit.getOnlinePlayers()) {
             if (o.getUniqueId().equals(p.getUniqueId())) continue;
             if (r.isOwner(o.getUniqueId()) || r.isMember(o.getUniqueId())) continue;
-            online.add(new com.vitalis.rg.menu.DialogMenu.DialogMenuEntry(
+            if (!o.getName().toLowerCase(Locale.ROOT).startsWith(q)) continue;
+            matched.add(new com.vitalis.rg.menu.DialogMenu.DialogMenuEntry(
                     o.getUniqueId().toString(), o.getName()));
-            if (online.size() >= 24) break;
+            if (matched.size() >= 24) break;
         }
-        if (!online.isEmpty()) {
-            try {
-                List<io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry> opts = new ArrayList<>();
+        if (matched.isEmpty()) {
+            // nobody online matches: full manual entry (covers offline players)
+            openTypeDialog(p, r, owner);
+            return;
+        }
+        try {
+            List<io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry> opts = new ArrayList<>();
+            opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
+                    .create("__type__", net.kyori.adventure.text.Component.text("Ввести ник полностью"), true));
+            for (com.vitalis.rg.menu.DialogMenu.DialogMenuEntry e : matched) {
                 opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
-                        .create("__type__", net.kyori.adventure.text.Component.text("Ввести ник вручную"), true));
-                for (com.vitalis.rg.menu.DialogMenu.DialogMenuEntry e : online) {
-                    opts.add(io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput.OptionEntry
-                            .create(e.id(), net.kyori.adventure.text.Component.text(e.nick()), false));
-                }
-                com.vitalis.rg.menu.DialogMenu.select(plugin, p,
-                        Msg.color(plugin.menus().grad("Кого добавить · " + r.name)), opts,
-                        id -> {
-                            if (id.isEmpty()) {
-                                send(p, "&7Отменено.");
-                                return;
-                            }
-                            if (id.equals("__type__")) {
-                                openTypeDialog(p, r, owner);
-                                return;
-                            }
-                            applyAddUuid(p, r.name, id, owner);
-                        });
-                return;
-            } catch (Throwable t) {
-                // fall through to text input
+                        .create(e.id(), net.kyori.adventure.text.Component.text(e.nick()), false));
             }
+            com.vitalis.rg.menu.DialogMenu.select(plugin, p,
+                    Msg.color(plugin.menus().grad("Начинаются на «" + prefix + "» · " + r.name)), opts,
+                    id -> {
+                        if (id.isEmpty()) {
+                            send(p, "&7Отменено.");
+                            return;
+                        }
+                        if (id.equals("__type__")) {
+                            openTypeDialog(p, r, owner);
+                            return;
+                        }
+                        applyAddUuid(p, r.name, id, owner);
+                    });
+        } catch (Throwable t) {
+            openTypeDialog(p, r, owner);
         }
-        openTypeDialog(p, r, owner);
     }
 
     /** Manual nick entry window (also covers offline players). */

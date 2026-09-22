@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-version = "3.3.2"
+version = "3.3.3"
 group = "com.vitalis.rg"
 
 base {
