@@ -8,7 +8,7 @@ depend: []
 softdepend: [Vault, Essentials, WorldGuard]
 commands:
   area:
-    description: Regions - everything in chat buttons. Commands: pos1, pos2, remove.
+    description: "Regions - everything in chat buttons. Commands pos1, pos2, remove."
     usage: /area [pos1|pos2|remove]
     aliases: [region, regions, rg]
 permissions:
