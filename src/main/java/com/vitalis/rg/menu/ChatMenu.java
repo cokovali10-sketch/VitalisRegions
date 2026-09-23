@@ -19,7 +19,7 @@ public class ChatMenu {
 
     public enum InputKind { ADD_OWNER, DEL_OWNER, ADD_MEMBER, DEL_MEMBER }
 
-    public record Pending(String region, InputKind kind) {}
+    public record Pending(String region, InputKind kind, long token) {}
 
     private final Regions plugin;
     private final Map<UUID, Pending> inputs = new HashMap<>();
@@ -29,11 +29,24 @@ public class ChatMenu {
     }
 
     public void markInput(Player p, String region, InputKind kind) {
-        inputs.put(p.getUniqueId(), new Pending(region, kind));
+        inputs.put(p.getUniqueId(), new Pending(region, kind, System.nanoTime()));
     }
 
     public Pending takeInput(Player p) {
         return inputs.remove(p.getUniqueId());
+    }
+
+    public Pending peekInput(Player p) {
+        return inputs.get(p.getUniqueId());
+    }
+
+    /** Timeout removes only the same request (a newer input must survive). */
+    public void timeoutInput(Player p, long token) {
+        Pending cur = inputs.get(p.getUniqueId());
+        if (cur != null && cur.token() == token) {
+            inputs.remove(p.getUniqueId());
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Ввод отменён (таймаут)."));
+        }
     }
 
     public void cancelInput(Player p) {

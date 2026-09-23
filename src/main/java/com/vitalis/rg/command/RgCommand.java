@@ -183,10 +183,11 @@ public class RgCommand implements CommandExecutor, TabCompleter {
     }
 
     private void scheduleInputTimeout(Player p) {
+        ChatMenu.Pending cur = plugin.menus().peekInput(p);
+        if (cur == null) return;
+        long token = cur.token();
         org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (plugin.menus().takeInput(p) != null) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Ввод отменён (таймаут)."));
-            }
+            plugin.menus().timeoutInput(p, token);
         }, 30L * 20L);
     }
 

@@ -36,10 +36,19 @@ public class Regions extends JavaPlugin {
         }
 
         commands = new RgCommand(this);
-        // Paper plugins register commands in code (no YAML commands support)
-        registerCommand("area", "Regions menu",
-                java.util.List.of("region", "regions", "rg"),
-                new com.vitalis.rg.command.AreaCommand(commands));
+        // Paper plugins register commands in code (no YAML commands support).
+        // Fallback to Bukkit registration keeps Spigot working too.
+        try {
+            registerCommand("area", "Regions menu",
+                    java.util.List.of("region", "regions", "rg"),
+                    new com.vitalis.rg.command.AreaCommand(commands));
+        } catch (NoSuchMethodError e) {
+            if (getCommand("area") != null) {
+                getCommand("area").setExecutor(commands);
+                getCommand("area").setTabCompleter(commands);
+            }
+            getLogger().warning("Paper command API missing, Bukkit fallback used.");
+        }
         getServer().getPluginManager().registerEvents(new GuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ProtectListener(this), this);
 
