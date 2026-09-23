@@ -169,7 +169,8 @@ public class ChatMenu {
 
     public void regionMenu(Player p, Region r) {
         clickSound(p);
-        boolean owner = r.isOwner(p.getUniqueId());
+        // owners, ops and area.admin get full settings; members view only
+        boolean owner = com.vitalis.rg.util.Perms.canManage(p, r);
         boolean member = r.isMember(p.getUniqueId());
         if (!owner && !member) {
             send(p, "&cНет доступа.");

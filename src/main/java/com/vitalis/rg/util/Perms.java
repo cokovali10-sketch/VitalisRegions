@@ -12,4 +12,9 @@ public final class Perms {
     public static boolean has(Player p, String node) {
         return p.hasPermission("area." + node) || p.hasPermission("rg." + node);
     }
+
+    /** Full control over any region: its owner, server operator or area.admin. */
+    public static boolean canManage(Player p, com.vitalis.rg.model.Region r) {
+        return r.isOwner(p.getUniqueId()) || p.isOp() || has(p, "admin");
+    }
 }

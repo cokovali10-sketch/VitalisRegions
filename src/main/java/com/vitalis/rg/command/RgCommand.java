@@ -54,7 +54,8 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             Region here = plugin.storage().at(loc.getWorld().getName(),
                     loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
             if (here != null) {
-                if (here.isOwner(p.getUniqueId()) || here.isMember(p.getUniqueId())) {
+                if (here.isOwner(p.getUniqueId()) || here.isMember(p.getUniqueId())
+                        || Perms.canManage(p, here)) {
                     plugin.menus().regionMenu(p, here);
                 } else {
                     send(p, "&cЭто чужой регион &f" + here.name + "&c, информации нет.");
@@ -182,14 +183,14 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         }, 30L * 20L);
     }
 
-    /** Region by name if viewer is its owner, else a message + null. */
+    /** Region by name if viewer may manage it (owner, op or area.admin). */
     private Region owned(Player p, String name) {
         Region r = plugin.storage().get(name);
         if (r == null) {
             send(p, "&cРегиона нет.");
             return null;
         }
-        if (!r.isOwner(p.getUniqueId())) {
+        if (!Perms.canManage(p, r)) {
             send(p, "&cТолько владелец.");
             return null;
         }
@@ -509,7 +510,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             send(p, "&cРегиона &f" + args[1] + " &cнет.");
             return;
         }
-        if (!r.isOwner(p.getUniqueId()) && !Perms.has(p, "admin")) {
+        if (!Perms.canManage(p, r)) {
             send(p, "&cТолько владелец или админ.");
             return;
         }
