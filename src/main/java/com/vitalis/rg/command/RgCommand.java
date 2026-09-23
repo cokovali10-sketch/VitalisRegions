@@ -87,6 +87,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
             }
             case "remove" -> handleRemove(p, args);
             case "help", "?" -> helpMenu(p);
+            case "check" -> diagnostic(p);
             // ---- hidden button routes (not in tab-complete) ----
             case "m" -> plugin.menus().mainMenu(p);
             case "sel" -> {
@@ -469,6 +470,30 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         send(p, "&aЖезл выдан: &fЛКМ — точка 1, ПКМ — точка 2");
     }
 
+    /** Ground truth diagnostic: whose region, your status, our verdict. */
+    private void diagnostic(Player p) {
+        org.bukkit.Location loc = p.getLocation();
+        Region r = plugin.storage().at(loc.getWorld().getName(),
+                loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        send(p, "<gray>Стоишь: " + loc.getWorld().getName() + " " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ());
+        if (r == null) {
+            send(p, "&7Здесь нет нашего региона — строить можно (если не запрещает другой плагин).");
+            return;
+        }
+        String status;
+        if (r.isOwner(p.getUniqueId())) status = "&6владелец";
+        else if (r.isMember(p.getUniqueId())) status = "&bигрок";
+        else if (Perms.canManage(p, r)) status = "&cадмин/оп";
+        else status = "&7чужой";
+        send(p, "&7Регион " + r.name + " (владелец " + r.ownerName + "), ты: " + status);
+        if (r.canBuild(p.getUniqueId()) || Perms.has(p, "bypass")) {
+            send(p, "&aНаш вердикт: строить и ломать МОЖНО.");
+            send(p, "&7Не получается? Значит блокирует WorldGuard или другой плагин — встань сюда и введи &f/rg info &7(WG команда).");
+        } else {
+            send(p, "&cНаш вердикт: строить НЕЛЬЗЯ — тебя нет в регионе. Попроси владельца добавить через &f/area&c.");
+        }
+    }
+
     /** Super simple help: 3 commands + buttons do the rest. */
     private void helpMenu(Player p) {
         send(p, "<gradient:#5DFF6E:#00E5FF>Как приватить:</gradient>");
@@ -477,6 +502,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         send(p, "&73. Введи &e/area &7и выбери &6[На всю высоту] &7или &a[Как выделил]");
         send(p, "&7Владельцев и игроков добавляют кнопки &a[+] &7и &c[-] &7— ник пишется в чат.");
         send(p, "&7Удалить регион: встань в него и введи &e/area remove");
+        send(p, "&7Не строится? Встань туда и введи &e/area check &7— скажет кто виноват.");
     }
 
     private String xyz(Location l) {
