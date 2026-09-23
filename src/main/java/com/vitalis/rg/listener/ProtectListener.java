@@ -31,7 +31,7 @@ public class ProtectListener implements Listener {
     }
 
     private void deny(Player p, Region r) {
-        p.sendMessage(Msg.color(plugin.cfg().prefix + "&cЗдесь занято &7(владелец &f" + r.ownerName + "&7)"));
+        p.sendMessage(Msg.color(plugin.cfg().prefix + "&cЗдесь регион &f" + r.name + " &7(владелец &f" + r.ownerName + "&7)"));
     }
 
     // ---------------- blocks ----------------

@@ -236,21 +236,20 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         removeConfirm.remove(p.getUniqueId());
         plugin.storage().remove(r.name);
         plugin.storage().saveAsync();
-        send(p, "&aРегион удалён.");
+        send(p, "&aРегион " + r.name + " удалён.");
         ChatMenu.sDelete(plugin, p);
     }
 
     // ---------------- create (auto-numbered, no names) ----------------
 
+    /** Random individual 5-digit number per region (10000-99999). */
     private String nextId(Player p) {
-        String base = p.getName().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
-        if (base.length() > 10) base = base.substring(0, 10);
-        if (base.isEmpty()) base = "rg";
-        for (int n = 1; n < 10000; n++) {
-            String id = base + "-" + n;
+        java.util.Random rnd = new java.util.Random();
+        for (int i = 0; i < 1000; i++) {
+            String id = String.valueOf(10000 + rnd.nextInt(90000));
             if (plugin.storage().get(id) == null) return id;
         }
-        return base + "-" + System.currentTimeMillis() % 100000;
+        return String.valueOf(10000 + rnd.nextInt(90000)) + (System.currentTimeMillis() % 10);
     }
 
     private void doCreate(Player p, boolean vert) {
@@ -306,7 +305,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         plugin.storage().put(r);
         plugin.storage().saveAsync();
         plugin.selections().clear(p.getUniqueId());
-        send(p, "<gradient:#5DFF6E:#00E5FF>Регион создан!</gradient> <gray>"
+        send(p, "<gradient:#5DFF6E:#00E5FF>Регион " + id + " создан!</gradient> <gray>"
                 + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
                 + (vert ? " (на всю высоту)" : "") + " — бесплатно");
         if (plugin.cfg().sounds) {

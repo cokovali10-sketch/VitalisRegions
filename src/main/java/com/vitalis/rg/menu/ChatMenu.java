@@ -141,7 +141,7 @@ public class ChatMenu {
                     + "\nВладелец: " + r.ownerName
                     + "\nИгроков: " + r.members.size()
                     + "\nОгонь/взрывы: " + (r.fireSpread ? "да" : "нет") + "/" + (r.explosions ? "да" : "нет"));
-            String label = compact ? n + ". " + where : where;
+            String label = compact ? n + ". регион " + r.name : "регион " + r.name;
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + label + " " + role + " ")
                     .hoverEvent(HoverEvent.showText(hover))
                     .append(btn(compact ? "»" : "настроить", NamedTextColor.GREEN,
@@ -178,7 +178,7 @@ public class ChatMenu {
             send(p, "&cНет доступа.");
             return;
         }
-        frameTop(p, "Твой регион");
+        frameTop(p, "Регион " + r.name);
         send(p, "<gray>" + r.world + " · " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
                 + " · владелец " + r.ownerName);
         if (!owner && member) {
@@ -241,7 +241,7 @@ public class ChatMenu {
 
     /** Delete confirm step with explicit Yes/Cancel buttons. */
     public void deleteConfirmMenu(Player p, Region r) {
-        p.sendMessage(Msg.color(plugin.cfg().prefix + "<red>Точно удалить этот регион?"));
+        p.sendMessage(Msg.color(plugin.cfg().prefix + "<red>Точно удалить регион " + r.name + "?"));
         p.sendMessage(Msg.color(plugin.cfg().prefix + "")
                 .append(btn("Да, удалить", NamedTextColor.RED, "/area delyes " + r.name, "Безвозвратно"))
                 .append(Component.text(" "))
