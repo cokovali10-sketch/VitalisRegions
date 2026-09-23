@@ -157,6 +157,13 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 }
                 askAddNick(p, r, isOwner);
             }
+            case "kick" -> {
+                if (args.length < 2) {
+                    send(p, "&eИспользование: &f/area kick <ник>");
+                    return true;
+                }
+                kickPlayer(p, args[1]);
+            }
             case "gwand" -> {
                 if (!Perms.has(p, "use")) {
                     send(p, "&cНет доступа.");
@@ -470,6 +477,50 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         send(p, "&aЖезл выдан: &fЛКМ — точка 1, ПКМ — точка 2");
     }
 
+    /** Kick from own region to spawn with 3s warmup. Owner only, target must stand inside. */
+    private void kickPlayer(Player kicker, String nick) {
+        Player target = org.bukkit.Bukkit.getPlayerExact(nick);
+        if (target == null) {
+            send(kicker, "&cИгрок &f" + nick + " &cне в сети.");
+            return;
+        }
+        if (target.getUniqueId().equals(kicker.getUniqueId())) {
+            send(kicker, "&cСебя кикнуть нельзя.");
+            return;
+        }
+        org.bukkit.Location tloc = target.getLocation();
+        Region in = null;
+        for (Region r : plugin.storage().all()) {
+            if (!r.contains(tloc.getWorld().getName(), tloc.getBlockX(), tloc.getBlockY(), tloc.getBlockZ())) continue;
+            if (r.isOwner(kicker.getUniqueId())) {
+                in = r;
+                break;
+            }
+        }
+        if (in == null) {
+            send(kicker, "&cИгрок не в границах твоего региона. Кикать можно только у себя.");
+            return;
+        }
+        if (plugin.kickWarmups().containsKey(target.getUniqueId())) {
+            send(kicker, "&7Его уже кикают.");
+            return;
+        }
+        send(kicker, "&e" + target.getName() + " &7будет на спавне через 3 сек. Сдвинется — отмена.");
+        target.sendMessage(Msg.color(plugin.cfg().prefix + "&cВас перенесет на спавн через 3 секунды."));
+        if (plugin.cfg().sounds) {
+            target.playSound(target.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 0.8f);
+        }
+        org.bukkit.scheduler.BukkitTask task = org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            plugin.kickWarmups().remove(target.getUniqueId());
+            if (!target.isOnline()) return;
+            org.bukkit.World w = org.bukkit.Bukkit.getWorlds().isEmpty()
+                    ? target.getWorld() : org.bukkit.Bukkit.getWorlds().get(0);
+            target.teleport(w.getSpawnLocation());
+            target.sendMessage(Msg.color(plugin.cfg().prefix + "&aТы на спавне."));
+        }, 60L);
+        plugin.kickWarmups().put(target.getUniqueId(), task);
+    }
+
     /** Super simple help: 3 commands + buttons do the rest. */
     private void helpMenu(Player p) {
         send(p, "<gradient:#5DFF6E:#00E5FF>Как приватить:</gradient>");
@@ -478,6 +529,7 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         send(p, "&73. Введи &e/area &7и выбери &6[На всю высоту] &7или &a[Как выделил]");
         send(p, "&7Владельцев и игроков добавляют кнопки &a[+] &7и &c[-] &7— ник пишется в чат.");
         send(p, "&7Удалить регион: встань в него и введи &e/area remove");
+        send(p, "&7Кикнуть чужого со своей территории: &e/area kick <ник> &7(только владелец, через 3 сек на спавн)");
     }
 
     private String xyz(Location l) {
@@ -488,7 +540,12 @@ public class RgCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(args[0], List.of("pos1", "pos2", "remove", "help"));
+            return filter(args[0], List.of("pos1", "pos2", "remove", "help", "kick"));
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("kick") && sender instanceof Player) {
+            List<String> names = new ArrayList<>();
+            for (Player o : org.bukkit.Bukkit.getOnlinePlayers()) names.add(o.getName());
+            return filter(args[1], names);
         }
         // nick completion for add/del while typing
         if ((args[0].equalsIgnoreCase("ownadd") || args[0].equalsIgnoreCase("memadd"))

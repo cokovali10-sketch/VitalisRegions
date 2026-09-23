@@ -62,6 +62,23 @@ public class GuiListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         plugin.menus().cancelInput(e.getPlayer());
+        // quit cancels own kick warmup silently
+        org.bukkit.scheduler.BukkitTask task = plugin.kickWarmups().remove(e.getPlayer().getUniqueId());
+        if (task != null) task.cancel();
+    }
+
+    /** Moving a blockcell cancels your kick warmup. */
+    @EventHandler(ignoreCancelled = true)
+    public void onKickMove(org.bukkit.event.player.PlayerMoveEvent e) {
+        if (e.getTo() == null) return;
+        if (e.getFrom().getBlockX() == e.getTo().getBlockX()
+                && e.getFrom().getBlockY() == e.getTo().getBlockY()
+                && e.getFrom().getBlockZ() == e.getTo().getBlockZ()) return;
+        org.bukkit.scheduler.BukkitTask task = plugin.kickWarmups().remove(e.getPlayer().getUniqueId());
+        if (task != null) {
+            task.cancel();
+            e.getPlayer().sendMessage(Msg.color(plugin.cfg().prefix + "&7Телепорт на спавн отменён (ты сдвинулся)."));
+        }
     }
 
     /** Nicknames change — refresh stored display names on join (keys stay UUID). */

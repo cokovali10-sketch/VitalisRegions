@@ -36,8 +36,16 @@ public class AreaCommand implements BasicCommand {
         if (args.length <= 1) {
             String q = args.length == 1 ? args[0].toLowerCase(Locale.ROOT) : "";
             List<String> out = new ArrayList<>();
-            for (String o : List.of("pos1", "pos2", "remove", "help")) {
+            for (String o : List.of("pos1", "pos2", "remove", "help", "kick")) {
                 if (o.startsWith(q)) out.add(o);
+            }
+            return out;
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("kick")) {
+            String q = args[1].toLowerCase(Locale.ROOT);
+            List<String> out = new ArrayList<>();
+            for (Player o : org.bukkit.Bukkit.getOnlinePlayers()) {
+                if (o.getName().toLowerCase(Locale.ROOT).startsWith(q)) out.add(o.getName());
             }
             return out;
         }

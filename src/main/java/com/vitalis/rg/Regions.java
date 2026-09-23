@@ -10,6 +10,10 @@ import com.vitalis.rg.select.SelectionManager;
 import com.vitalis.rg.storage.RegionStorage;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * VitalisRegions - Paper/Purpur 1.21.11.
  * /area, /area pos1/pos2/remove + chat button menus. No GUI windows.
@@ -21,6 +25,8 @@ public class Regions extends JavaPlugin {
     private ChatMenu menus;
     private RgCommand commands;
     private final VaultHook economy = new VaultHook(this);
+    /** target uuid -> warmup task (kick to spawn in 3s, cancels on move/quit) */
+    private final Map<UUID, org.bukkit.scheduler.BukkitTask> kickWarmups = new ConcurrentHashMap<>();
 
     @Override
     public void onEnable() {
@@ -67,4 +73,5 @@ public class Regions extends JavaPlugin {
     public ChatMenu menus() { return menus; }
     public RgCommand commands() { return commands; }
     public VaultHook economy() { return economy; }
+    public Map<UUID, org.bukkit.scheduler.BukkitTask> kickWarmups() { return kickWarmups; }
 }
