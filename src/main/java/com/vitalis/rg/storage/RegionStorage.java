@@ -135,19 +135,6 @@ public class RegionStorage {
         return removed;
     }
 
-    /** Rename: returns false if new name invalid or taken. */
-    public synchronized boolean rename(String oldName, String newName) {
-        if (oldName == null || newName == null) return false;
-        if (!newName.matches("[a-zA-Z0-9_-]{3,16}")) return false;
-        if (regions.containsKey(newName.toLowerCase(Locale.ROOT))) return false;
-        Region r = regions.remove(oldName.toLowerCase(Locale.ROOT));
-        if (r == null) return false;
-        r.name = newName;
-        regions.put(newName.toLowerCase(Locale.ROOT), r);
-        reindex();
-        return true;
-    }
-
     public synchronized int countBy(UUID owner) {
         int n = 0;
         for (Region r : regions.values()) {

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /** Paper Brigadier wrapper around RgCommand (paper-plugin.yml has no YAML commands). */
 public class AreaCommand implements BasicCommand {
@@ -39,6 +40,30 @@ public class AreaCommand implements BasicCommand {
                 if (o.startsWith(q)) out.add(o);
             }
             return out;
+        }
+        // nick TAB-completion for add/del routes
+        if (args.length == 3) {
+            String sub = args[0].toLowerCase(Locale.ROOT);
+            String q = args[2].toLowerCase(Locale.ROOT);
+            if (sub.equals("ownadd") || sub.equals("memadd")) {
+                List<String> out = new ArrayList<>();
+                for (Player o : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    if (o.getName().toLowerCase(Locale.ROOT).startsWith(q)) out.add(o.getName());
+                }
+                return out;
+            }
+            if (sub.equals("owndel") || sub.equals("memdel")) {
+                com.vitalis.rg.model.Region r = commands.region(args[1]);
+                if (r != null && Perms.canManage(p, r)) {
+                    java.util.Map<UUID, String> map = sub.equals("owndel") ? r.owners : r.members;
+                    List<String> out = new ArrayList<>();
+                    for (java.util.Map.Entry<UUID, String> e : map.entrySet()) {
+                        if (sub.equals("owndel") && e.getKey().equals(r.owner)) continue;
+                        if (e.getValue().toLowerCase(Locale.ROOT).startsWith(q)) out.add(e.getValue());
+                    }
+                    return out;
+                }
+            }
         }
         return List.of();
     }

@@ -17,9 +17,9 @@ import java.util.*;
  */
 public class ChatMenu {
 
-    public enum InputKind { CREATE_NAME, RENAME, ADD_OWNER, DEL_OWNER, ADD_MEMBER, DEL_MEMBER }
+    public enum InputKind { ADD_OWNER, DEL_OWNER, ADD_MEMBER, DEL_MEMBER }
 
-    public record Pending(String region, InputKind kind, boolean vert) {}
+    public record Pending(String region, InputKind kind) {}
 
     private final Regions plugin;
     private final Map<UUID, Pending> inputs = new HashMap<>();
@@ -29,11 +29,7 @@ public class ChatMenu {
     }
 
     public void markInput(Player p, String region, InputKind kind) {
-        markInput(p, region, kind, false);
-    }
-
-    public void markInput(Player p, String region, InputKind kind, boolean vert) {
-        inputs.put(p.getUniqueId(), new Pending(region, kind, vert));
+        inputs.put(p.getUniqueId(), new Pending(region, kind));
     }
 
     public Pending takeInput(Player p) {
@@ -67,6 +63,14 @@ public class ChatMenu {
         return Component.text("[" + text + "]")
                 .color(color)
                 .clickEvent(ClickEvent.runCommand(command))
+                .hoverEvent(HoverEvent.showText(Component.text(hover)));
+    }
+
+    /** Button that inserts a command into the chat line (player finishes typing). */
+    public static Component insertBtn(String text, NamedTextColor color, String toInsert, String hover) {
+        return Component.text("[" + text + "]")
+                .color(color)
+                .clickEvent(ClickEvent.suggestCommand(toInsert))
                 .hoverEvent(HoverEvent.showText(Component.text(hover)));
     }
 
@@ -131,19 +135,17 @@ public class ChatMenu {
         for (Region r : mine) {
             n++;
             String role = r.isOwner(p.getUniqueId()) ? "<gold>★" : "<aqua>●";
-            Component hover = Msg.color("<gray>" + r.world + " " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
+            String where = r.world + " " + r.minX + "," + r.minY + "," + r.minZ;
+            Component hover = Msg.color("<gray>" + where
+                    + "\nРазмер: " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
                     + "\nВладелец: " + r.ownerName
                     + "\nИгроков: " + r.members.size()
                     + "\nОгонь/взрывы: " + (r.fireSpread ? "да" : "нет") + "/" + (r.explosions ? "да" : "нет"));
-            if (compact) {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&8" + n + ". &f" + r.name + " " + role + " ")
-                        .hoverEvent(HoverEvent.showText(hover))
-                        .append(btn("»", NamedTextColor.GREEN, "/area sel " + r.name, "Открыть настройки")));
-            } else {
-                p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + r.name + " " + role + " ")
-                        .hoverEvent(HoverEvent.showText(hover))
-                        .append(btn("настроить", NamedTextColor.GREEN, "/area sel " + r.name, "Открыть настройки")));
-            }
+            String label = compact ? n + ". " + where : where;
+            p.sendMessage(Msg.color(plugin.cfg().prefix + "&f" + label + " " + role + " ")
+                    .hoverEvent(HoverEvent.showText(hover))
+                    .append(btn(compact ? "»" : "настроить", NamedTextColor.GREEN,
+                            "/area sel " + r.name, "Открыть настройки")));
         }
         // selection row
         var sel = plugin.selections().get(p.getUniqueId());
@@ -176,9 +178,12 @@ public class ChatMenu {
             send(p, "&cНет доступа.");
             return;
         }
-        frameTop(p, "Регион " + r.name);
+        frameTop(p, "Твой регион");
         send(p, "<gray>" + r.world + " · " + r.sizeX() + "x" + r.sizeY() + "x" + r.sizeZ()
                 + " · владелец " + r.ownerName);
+        if (!owner && member) {
+            send(p, "<green>Твой статус: игрок — строить и ломать МОЖНО. <gray>Не получается? Значит мешает другой плагин (обычно WorldGuard) — скажи админу где стоишь.");
+        }
         // owners: ★ names, then [+] [-] — hover explains, colors differ from members
         var oLine = Component.text();
         oLine.append(Component.text("★ ").color(NamedTextColor.GOLD)
@@ -187,9 +192,11 @@ public class ChatMenu {
             oLine.append(Component.text(e.getValue() + " ").color(NamedTextColor.YELLOW));
         }
         if (owner) {
-            oLine.append(btn("+", NamedTextColor.GREEN, "/area ownadd " + r.name, "Добавить: ник в окно"))
+            oLine.append(insertBtn("+", NamedTextColor.GREEN, "/area ownadd " + r.name + " ",
+                            "Клик — команда в строке, допиши ник (TAB подскажет)"))
                     .append(Component.text(" "))
-                    .append(btn("-", NamedTextColor.RED, "/area owndel " + r.name, "Убрать: выбор из списка"));
+                    .append(insertBtn("-", NamedTextColor.RED, "/area owndel " + r.name + " ",
+                            "Клик — команда в строке, допиши ник (TAB подскажет)"));
         }
         p.sendMessage(oLine.build());
         // members: ● names, then [+] [-]
@@ -206,9 +213,11 @@ public class ChatMenu {
             mLine.append(Component.text(e.getValue() + " ").color(NamedTextColor.WHITE));
         }
         if (owner) {
-            mLine.append(btn("+", NamedTextColor.GREEN, "/area memadd " + r.name, "Добавить: ник в окно"))
+            mLine.append(insertBtn("+", NamedTextColor.GREEN, "/area memadd " + r.name + " ",
+                            "Клик — команда в строке, допиши ник (TAB подскажет)"))
                     .append(Component.text(" "))
-                    .append(btn("-", NamedTextColor.RED, "/area memdel " + r.name, "Убрать: выбор из списка"));
+                    .append(insertBtn("-", NamedTextColor.RED, "/area memdel " + r.name + " ",
+                            "Клик — команда в строке, допиши ник (TAB подскажет)"));
         }
         p.sendMessage(mLine.build());
         // flags: ◆ + green/red states (owners clickable, members see state)
@@ -224,7 +233,6 @@ public class ChatMenu {
         if (owner) {
             var aLine = Component.text();
             aLine.append(btn("Высота", NamedTextColor.GOLD, "/area vert " + r.name, "Растянуть от bedrock до неба")).append(Component.text(" "));
-            aLine.append(btn("Переименовать", NamedTextColor.YELLOW, "/area ren " + r.name, "Новое название в окно")).append(Component.text(" "));
             aLine.append(btn("Удалить", NamedTextColor.RED, "/area del " + r.name, "Удаление с подтверждением"));
             p.sendMessage(aLine.build());
         }
@@ -233,7 +241,7 @@ public class ChatMenu {
 
     /** Delete confirm step with explicit Yes/Cancel buttons. */
     public void deleteConfirmMenu(Player p, Region r) {
-        p.sendMessage(Msg.color(plugin.cfg().prefix + "<red>Точно удалить регион " + r.name + "?"));
+        p.sendMessage(Msg.color(plugin.cfg().prefix + "<red>Точно удалить этот регион?"));
         p.sendMessage(Msg.color(plugin.cfg().prefix + "")
                 .append(btn("Да, удалить", NamedTextColor.RED, "/area delyes " + r.name, "Безвозвратно"))
                 .append(Component.text(" "))

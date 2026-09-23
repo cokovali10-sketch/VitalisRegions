@@ -99,15 +99,13 @@ public class GuiListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> applyInput(p, in, text));
     }
 
-    /** Chat fallback (when dialog windows are unavailable): same shared logic. */
+    /** Nick input from chat: same shared logic as typed commands. */
     private void applyInput(Player p, ChatMenu.Pending in, String text) {
         if (text.isEmpty()) {
             p.sendMessage(Msg.color(plugin.cfg().prefix + "&7Отменено."));
             return;
         }
         switch (in.kind()) {
-            case CREATE_NAME -> plugin.commands().createFromChat(p, text, in.vert());
-            case RENAME -> plugin.commands().applyRename(p, in.region(), text);
             case ADD_OWNER -> plugin.commands().applyAdd(p, in.region(), text, true);
             case ADD_MEMBER -> plugin.commands().applyAdd(p, in.region(), text, false);
             case DEL_OWNER -> plugin.commands().applyDelNick(p, in.region(), text, true);
