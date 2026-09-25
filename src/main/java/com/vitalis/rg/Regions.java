@@ -2,7 +2,7 @@ package com.vitalis.rg;
 
 import com.vitalis.rg.command.RgCommand;
 import com.vitalis.rg.config.RgConfig;
-import com.vitalis.rg.economy.VaultHook;
+import com.vitalis.rg.economy.EconomyBridge;
 import com.vitalis.rg.menu.ChatMenu;
 import com.vitalis.rg.listener.GuiListener;
 import com.vitalis.rg.listener.ProtectListener;
@@ -24,7 +24,7 @@ public class Regions extends JavaPlugin {
     private final SelectionManager selections = new SelectionManager();
     private ChatMenu menus;
     private RgCommand commands;
-    private final VaultHook economy = new VaultHook(this);
+    private final EconomyBridge economy = new EconomyBridge(this);
     /** target uuid -> warmup task (kick to spawn in 3s, cancels on move/quit) */
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> kickWarmups = new ConcurrentHashMap<>();
 
@@ -36,9 +36,9 @@ public class Regions extends JavaPlugin {
         menus = new ChatMenu(this);
 
         if (economy.setup()) {
-            getLogger().info("Vault hooked, claim price: " + cfg.claimPrice);
+            getLogger().info("Economy hooked via " + economy.mode() + ", claim price: " + cfg.claimPrice);
         } else {
-            getLogger().info("Vault not found, claims are free.");
+            getLogger().info("No economy found, claims are free.");
         }
 
         commands = new RgCommand(this);
@@ -72,6 +72,6 @@ public class Regions extends JavaPlugin {
     public SelectionManager selections() { return selections; }
     public ChatMenu menus() { return menus; }
     public RgCommand commands() { return commands; }
-    public VaultHook economy() { return economy; }
+    public EconomyBridge economy() { return economy; }
     public Map<UUID, org.bukkit.scheduler.BukkitTask> kickWarmups() { return kickWarmups; }
 }
