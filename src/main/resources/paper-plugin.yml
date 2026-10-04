@@ -11,8 +11,8 @@ permissions:
     description: "Use /area"
     default: true
   area.create:
-    description: "Create regions"
-    default: true
+    description: "Create regions (admins only)"
+    default: op
   area.unlimited:
     description: "Bypass region count limits"
     default: op
