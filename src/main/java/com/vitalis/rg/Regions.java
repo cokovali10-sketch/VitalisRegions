@@ -24,6 +24,7 @@ public class Regions extends JavaPlugin {
     private final SelectionManager selections = new SelectionManager();
     private ChatMenu menus;
     private RgCommand commands;
+    private com.vitalis.rg.border.BorderManager borders;
     private final EconomyBridge economy = new EconomyBridge(this);
     /** target uuid -> warmup task (kick to spawn in 3s, cancels on move/quit) */
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> kickWarmups = new ConcurrentHashMap<>();
@@ -57,12 +58,47 @@ public class Regions extends JavaPlugin {
         }
         getServer().getPluginManager().registerEvents(new GuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ProtectListener(this), this);
+        getServer().getPluginManager().registerEvents(
+                new com.vitalis.rg.listener.MoveListener(this), this);
+
+        borders = new com.vitalis.rg.border.BorderManager(this);
+        borders.start();
+
+        // Paper plugins enable BEFORE Bukkit plugins, so PAPI is usually not
+        // loaded yet. Hook on its enable event instead of polling a timer
+        // (startup timers do not tick until the server is fully up).
+        if (!hookPlaceholderApi()) {
+            getServer().getPluginManager().registerEvents(new org.bukkit.event.Listener() {
+                @org.bukkit.event.EventHandler
+                public void onPluginEnable(org.bukkit.event.server.PluginEnableEvent e) {
+                    if (e.getPlugin().getName().equalsIgnoreCase("PlaceholderAPI")) {
+                        hookPlaceholderApi();
+                    }
+                }
+            }, this);
+        }
 
         getLogger().info("VitalisRegions enabled, regions: " + storage.all().size());
     }
 
+    /** Register the PAPI expansion once PlaceholderAPI is available. */
+    private boolean hookPlaceholderApi() {
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            try {
+                new com.vitalis.rg.hook.RgExpansion(this).register();
+                getLogger().info("PlaceholderAPI hooked: %vitalisregions_mine|count|owner%.");
+                return true;
+            } catch (Throwable t) {
+                getLogger().warning("PAPI hook failed: " + t.getMessage());
+                return true; // don't spam retries on a real failure
+            }
+        }
+        return false;
+    }
+
     @Override
     public void onDisable() {
+        if (borders != null) borders.stop();
         if (storage != null) storage.save();
         getLogger().info("VitalisRegions disabled, data saved.");
     }
@@ -73,5 +109,6 @@ public class Regions extends JavaPlugin {
     public ChatMenu menus() { return menus; }
     public RgCommand commands() { return commands; }
     public EconomyBridge economy() { return economy; }
+    public com.vitalis.rg.border.BorderManager borders() { return borders; }
     public Map<UUID, org.bukkit.scheduler.BukkitTask> kickWarmups() { return kickWarmups; }
 }

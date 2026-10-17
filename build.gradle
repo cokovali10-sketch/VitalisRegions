@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-version = "4.1.2"
+version = "4.2.0"
 group = "com.vitalis.rg"
 
 base {
@@ -14,11 +14,13 @@ repositories {
     maven { url = "https://repo.papermc.io/repository/maven-public/" }
     maven { url = "https://jitpack.io" }
     maven { url = "https://maven.enginehub.org/repo/" }
+    maven { url = "https://repo.extendedclip.com/content/repositories/placeholderapi/" }
 }
 
 dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     compileOnly "com.sk89q.worldguard:worldguard-bukkit:7.0.15"
+    compileOnly "me.clip:placeholderapi:2.11.6"
     testImplementation "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"

@@ -35,3 +35,27 @@ theme:
   to: "#7AD9FF"
   # actionbar title when entering your region
   enter-title: true
+
+# Actionbar toast on crossing a region border.
+# %region% and %owner% are replaced. First entry per session is silent.
+greet:
+  enabled: true
+  enter: '&#FFD76A◆ &f%region% &7· &f%owner%'
+  leave: '&7Дикая местность'
+
+# Particle outline of region borders. Toggle per player via the
+# [Границы] chat button in /area or /area border [name].
+border:
+  enabled: true
+  # ticks between redraws (lower = smoother, more packets)
+  interval: 10
+  # blocks between particles on an edge (1 = every block)
+  step: 1
+  # DUST (colored) or any Particle name: END_ROD, FLAME, VILLAGER_HAPPY...
+  particle: DUST
+  color: "#7AD9FF"
+  size: 0.9
+  # only redraw when the viewer is within this many blocks of the region
+  max-distance: 64
+  # hard cap of particles per region per redraw (edge step grows to fit)
+  max-particles: 400

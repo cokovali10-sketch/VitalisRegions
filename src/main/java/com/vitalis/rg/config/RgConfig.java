@@ -30,6 +30,17 @@ public class RgConfig {
     public String themeFrom;
     public String themeTo;
     public boolean enterTitle;
+    public boolean greetEnabled;
+    public String greetEnter;
+    public String greetLeave;
+    public boolean borderEnabled;
+    public int borderInterval;
+    public int borderStep;
+    public String borderParticle;
+    public String borderColor;
+    public float borderSize;
+    public int borderMaxDistance;
+    public int borderMaxParticles;
 
     public void load(JavaPlugin plugin) {
         plugin.saveDefaultConfig();
@@ -63,5 +74,17 @@ public class RgConfig {
         themeFrom = c.getString("theme.from", "#FFD76A");
         themeTo = c.getString("theme.to", "#7AD9FF");
         enterTitle = c.getBoolean("theme.enter-title", true);
+        greetEnabled = c.getBoolean("greet.enabled", true);
+        greetEnter = c.getString("greet.enter", "&6◆ &f%region% &7· &f%owner%");
+        greetLeave = c.getString("greet.leave", "&7Дикая местность");
+
+        borderEnabled = c.getBoolean("border.enabled", true);
+        borderInterval = c.getInt("border.interval", 10);
+        borderStep = c.getInt("border.step", 1);
+        borderParticle = c.getString("border.particle", "DUST");
+        borderColor = c.getString("border.color", "#7AD9FF");
+        borderSize = (float) c.getDouble("border.size", 0.9);
+        borderMaxDistance = c.getInt("border.max-distance", 64);
+        borderMaxParticles = c.getInt("border.max-particles", 400);
     }
 }

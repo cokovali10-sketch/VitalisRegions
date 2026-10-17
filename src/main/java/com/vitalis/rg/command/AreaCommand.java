@@ -36,8 +36,18 @@ public class AreaCommand implements BasicCommand {
         if (args.length <= 1) {
             String q = args.length == 1 ? args[0].toLowerCase(Locale.ROOT) : "";
             List<String> out = new ArrayList<>();
-            for (String o : List.of("pos1", "pos2", "remove", "help", "kick")) {
+            for (String o : List.of("pos1", "pos2", "remove", "help", "kick", "border")) {
                 if (o.startsWith(q)) out.add(o);
+            }
+            return out;
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("border")) {
+            String q = args[1].toLowerCase(Locale.ROOT);
+            List<String> out = new ArrayList<>();
+            for (com.vitalis.rg.model.Region r : commands.allRegions()) {
+                if (!r.name.toLowerCase(Locale.ROOT).startsWith(q)) continue;
+                if (r.isOwner(p.getUniqueId()) || r.isMember(p.getUniqueId())
+                        || com.vitalis.rg.util.Perms.canManage(p, r)) out.add(r.name);
             }
             return out;
         }

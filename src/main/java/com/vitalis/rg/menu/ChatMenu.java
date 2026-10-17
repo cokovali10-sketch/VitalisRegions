@@ -243,6 +243,11 @@ public class ChatMenu {
         fLine.append(flagBtn("Хомы", r.homes, owner ? "/area tgl " + r.name + " homes" : null));
         p.sendMessage(fLine.build());
         // actions
+        boolean borderOn = plugin.borders() != null && plugin.borders().isOn(p, r);
+        var bLine = Component.text();
+        bLine.append(Component.text("⬚ ").color(NamedTextColor.GRAY));
+        bLine.append(borderBtn(r.name, borderOn));
+        p.sendMessage(bLine.build());
         if (owner) {
             var aLine = Component.text();
             aLine.append(btn("Высота", NamedTextColor.GOLD, "/area vert " + r.name, "Растянуть от bedrock до неба")).append(Component.text(" "));
@@ -259,6 +264,15 @@ public class ChatMenu {
                 .append(btn("Да, удалить", NamedTextColor.RED, "/area delyes " + r.name, "Безвозвратно"))
                 .append(Component.text(" "))
                 .append(btn("Отмена", NamedTextColor.GREEN, "/area sel " + r.name, "Вернуться")));
+    }
+
+    /** Particle border show/hide toggle (per player, in chat). */
+    private static Component borderBtn(String region, boolean on) {
+        return Component.text("[Границы: " + (on ? "ВКЛ" : "ВЫКЛ") + "]")
+                .color(on ? NamedTextColor.GREEN : NamedTextColor.RED)
+                .clickEvent(ClickEvent.runCommand("/area border " + region))
+                .hoverEvent(HoverEvent.showText(Component.text(
+                        on ? "Клик — скрыть частицы границ" : "Клик — показать границы частицами")));
     }
 
     private static Component flagBtn(String name, boolean on, String command) {

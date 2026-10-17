@@ -38,6 +38,11 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         return plugin.storage().get(name);
     }
 
+    /** All regions for Brigadier suggest. */
+    public java.util.Collection<Region> allRegions() {
+        return plugin.storage().all();
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player p)) {
@@ -164,6 +169,14 @@ public class RgCommand implements CommandExecutor, TabCompleter {
                 }
                 kickPlayer(p, args[1]);
             }
+            case "border" -> {
+                if (args.length >= 2) {
+                    toggleBorder(p, plugin.storage().get(args[1]));
+                } else {
+                    toggleBorder(p, regionAt(p));
+                }
+            }
+
             case "gwand" -> {
                 if (!Perms.has(p, "use")) {
                     send(p, "&cНет доступа.");
@@ -188,6 +201,27 @@ public class RgCommand implements CommandExecutor, TabCompleter {
         org.bukkit.Location loc = p.getLocation();
         return plugin.storage().at(loc.getWorld().getName(),
                 loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+    }
+
+    /** Toggle particle outline for one region (own/member/admin only). */
+    private void toggleBorder(Player p, Region r) {
+        if (r == null) {
+            send(p, "&cТы не стоишь в регионе. &7Встань внутри или открой меню региона.");
+            return;
+        }
+        if (!r.isOwner(p.getUniqueId()) && !r.isMember(p.getUniqueId())
+                && !Perms.canManage(p, r)) {
+            send(p, "&cЧужой регион.");
+            return;
+        }
+        boolean now = plugin.borders().toggle(p, r);
+        if (now) {
+            ChatMenu.sToggle(plugin, p);
+            send(p, "&aГраницы региона &f" + r.name + " &aвключены. &7Кликни ещё раз, чтобы скрыть.");
+        } else {
+            ChatMenu.sToggle(plugin, p);
+            send(p, "&7Границы региона &f" + r.name + " &7скрыты.");
+        }
     }
 
     private void scheduleInputTimeout(Player p) {

@@ -5,11 +5,11 @@ api-version: "1.21"
 author: Vitalis
 description: Light regions for Purpur/Paper 1.21.11 - select, create, GUI members, protection.
 depend: []
-softdepend: [Vault, Essentials, WorldGuard]
+softdepend: [Vault, Essentials, WorldGuard, PlaceholderAPI]
 commands:
   area:
     description: "Regions - everything in chat buttons. Commands pos1, pos2, remove."
-    usage: /area [pos1|pos2|remove]
+    usage: /area [pos1|pos2|remove|kick|border]
     aliases: [region, regions, rg]
 permissions:
   area.use:
